@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Midas FleetTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1f2435;--border:#2a3045;
+  --accent:#f59e0b;--accent2:#3b82f6;--danger:#ef4444;--success:#22c55e;
+  --text:#e8ecf4;--muted:#6b7694;
+  --font-head:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;}
+
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:1px;flex-shrink:0;line-height:1;}
+.nav-brand span{color:var(--accent);}
+.nav-brand small{display:block;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:0;}
+.nav-right{display:flex;align-items:center;gap:6px;}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{font-family:var(--font-head);font-weight:600;font-size:11px;padding:5px 8px;border-radius:6px;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s;white-space:nowrap;}
+.nav-tab.active{background:var(--accent);color:#000;}
+.nav-tab:hover:not(.active){color:var(--text);background:var(--surface2);}
+.logout-btn{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:var(--font-head);white-space:nowrap;}
+.logout-btn:hover{color:var(--danger);border-color:var(--danger);}
+
+.page{display:none;padding:16px;max-width:640px;margin:0 auto;}
+.page.active{display:block;}
+.page-bureau{display:none;padding:20px;max-width:1400px;margin:0 auto;}
+.page-bureau.active{display:block;}
+
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:400px;text-align:center;}
+.login-logo{font-family:var(--font-head);font-size:32px;font-weight:800;margin-bottom:4px;}
+.login-logo span{color:var(--accent);}
+.login-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+.login-label{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;text-align:left;}
+.driver-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.driver-btn{padding:14px 10px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-head);font-size:17px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;}
+.driver-btn:hover{border-color:var(--accent);color:var(--accent);}
+.driver-btn.selected{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:var(--font-head);font-size:18px;font-weight:700;letter-spacing:0.5px;margin-bottom:16px;color:var(--accent);text-transform:uppercase;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:15px;outline:none;transition:border-color 0.2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:80px;resize:vertical;}
+.field select option{background:#1f2435;}
+
+.active-driver-bar{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.active-driver-name{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--accent);}
+.active-driver-label{font-size:12px;color:var(--muted);}
+
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.check-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all 0.2s;font-size:13px;}
+.check-item:hover{border-color:var(--accent);}
+.check-item.checked{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+.check-dot{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:10px;}
+.check-item.checked .check-dot{background:var(--accent);border-color:var(--accent);color:#000;}
+
+.btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-head);font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#fbbf24;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-success{background:var(--success);color:#000;}
+.btn-blue{background:var(--accent2);color:#fff;}
+.btn-sm{width:auto;padding:6px 14px;font-size:12px;border-radius:6px;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--font-head);letter-spacing:0.5px;text-transform:uppercase;}
+.badge-depose{background:#1e3a5f;color:#60a5fa;}
+.badge-reparation{background:#3a2010;color:#fb923c;}
+.badge-termine{background:#1a2a1a;color:#86efac;}
+.badge-enleve{background:#2a1a3a;color:#c084fc;}
+
+.veh-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;}
+.veh-card:hover{border-color:var(--accent2);}
+.veh-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.veh-plate{font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:2px;}
+.veh-meta{font-size:13px;color:var(--muted);margin-bottom:4px;}
+.veh-meta span{color:var(--text);font-weight:500;}
+.veh-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.veh-tag{background:var(--surface2);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:4px;font-family:var(--font-head);}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
+.filter-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all 0.2s;}
+.filter-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.stat-num{font-family:var(--font-head);font-size:32px;font-weight:800;color:var(--accent);}
+.stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:24px 20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--font-head);font-size:20px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;}
+
+.enl-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+.enl-modal-overlay.open{display:flex;}
+.enl-modal{background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:24px 20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.enl-title{font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--accent);margin-bottom:16px;}
+
+.multi-veh-list{max-height:220px;overflow-y:auto;margin-bottom:12px;}
+.multi-veh-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.2s;}
+.multi-veh-item.selected{border-color:var(--accent);background:#2a2010;}
+.multi-veh-item .mveh-plate{font-family:var(--font-head);font-size:18px;font-weight:800;}
+.multi-veh-item .mveh-info{font-size:12px;color:var(--muted);}
+.multi-check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.2s;}
+.multi-veh-item.selected .multi-check{background:var(--accent);border-color:var(--accent);color:#000;}
+
+.status-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.status-btn{padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-head);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.status-btn:hover{border-color:var(--accent);color:var(--accent);}
+.status-btn.current{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--success);color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-family:var(--font-head);font-size:15px;opacity:0;transition:all 0.3s;z-index:400;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.section-label{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-text{font-family:var(--font-head);font-size:18px;}
+
+/* ── BUREAU DASHBOARD ── */
+.bureau-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+.bureau-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+.bureau-stat-num{font-family:var(--font-head);font-size:38px;font-weight:800;}
+.bureau-stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;}
+.bureau-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.bureau-col{display:flex;flex-direction:column;gap:16px;}
+.bureau-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.bureau-card-title{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.bureau-veh-list{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.bureau-veh-row{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.bureau-veh-plate{font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:1px;}
+.bureau-veh-info{font-size:12px;color:var(--muted);margin-top:2px;}
+.bureau-veh-info span{color:var(--text);}
+.bureau-stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.bureau-stat-row:last-child{border-bottom:none;}
+.bureau-stat-val{font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--accent);}
+.alert-row{background:#2a1a1a;border:1px solid #7f1d1d;border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.alert-plate{font-family:var(--font-head);font-size:18px;font-weight:800;color:#fca5a5;}
+.alert-info{font-size:12px;color:#fca5a5;opacity:0.8;margin-top:2px;}
+.centre-selector{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.centre-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all 0.2s;}
+.centre-btn.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.sub-table{width:100%;border-collapse:collapse;font-size:12px;}
+.sub-table th{color:var(--muted);font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
+.sub-table td{padding:5px 6px;border-bottom:1px solid #1f2435;color:var(--text);}
+.sub-table tr:last-child td{border-bottom:none;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+
+/* ── ATELIER ── */
+.atelier-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+@media(max-width:640px){.atelier-layout{grid-template-columns:1fr;}}
+.atelier-col-title{font-family:var(--font-head);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+.atelier-veh{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;}
+.atelier-veh:hover{border-color:#34d399;}
+.atelier-veh.has-dossier{border-color:#059669;background:#0a2018;}
+.atelier-veh-plate{font-family:var(--font-head);font-size:20px;font-weight:800;letter-spacing:1px;}
+.atelier-veh-info{font-size:12px;color:var(--muted);margin-top:3px;}
+.atelier-veh-info span{color:var(--text);}
+.dossier-icon{color:#34d399;font-size:14px;margin-left:6px;}
+
+/* Dossier modal */
+.dossier-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+.dossier-overlay.open{display:flex;}
+.dossier-modal{background:var(--surface);border:2px solid #34d399;border-radius:16px;padding:24px 20px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;}
+.dossier-title{font-family:var(--font-head);font-size:22px;font-weight:800;color:#34d399;margin-bottom:4px;}
+.dossier-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;}
+.photo-thumb:hover{border-color:#34d399;}
+.photo-add-btn{width:100%;aspect-ratio:1;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:11px;gap:4px;transition:all 0.2s;}
+.photo-add-btn:hover{border-color:#34d399;color:#34d399;}
+.photo-add-btn span{font-size:24px;}
+
+/* Photo viewer */
+.photo-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:400;align-items:center;justify-content:center;}
+.photo-viewer.open{display:flex;}
+.photo-viewer img{max-width:95vw;max-height:95vh;border-radius:8px;}
+.photo-viewer-close{position:absolute;top:16px;right:20px;color:#fff;font-size:32px;cursor:pointer;background:none;border:none;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Midas <span>FleetTrack</span></div>
+    <div class="login-sub">Sélectionne ton nom pour commencer</div>
+    <div class="login-label">Qui es-tu ?</div>
+    <div class="driver-btns" id="driver-btns"></div>
+    <button class="btn btn-primary" onclick="confirmLogin()">✅ COMMENCER</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Midas <span>FleetTrack</span><small id="nav-driver-name"></small></div>
+  <div class="nav-right">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('encode')">📋 Encoder</button>
+      <button class="nav-tab" onclick="showPage('liste')">🚗 Véhicules</button>
+      <button class="nav-tab" onclick="showPage('dashboard')">📊 Stats</button>
+      <button class="nav-tab" onclick="showPage('archives')">📁 Archives</button>
+      <button class="nav-tab" onclick="showPage('bureau')" style="color:#818cf8;">🖥️ Bureau</button>
+      <button class="nav-tab" onclick="showPage('atelier')" style="color:#34d399;">🔧 Atelier</button>
+    </div>
+    <button class="logout-btn" onclick="logout()">⇄ Changer</button>
+  </div>
+</nav>
+
+<!-- ENCODER -->
+<div class="page active" id="page-encode">
+  <div class="active-driver-bar">
+    <div><div class="active-driver-label">Connecté</div><div class="active-driver-name" id="encode-driver-name">—</div></div>
+    <span style="font-size:24px;">👤</span>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Nouveau Véhicule</div>
+    <div class="field">
+      <label>Plaque *</label>
+      <input type="text" id="f-plaque" placeholder="1-ABC-123" style="text-transform:uppercase;font-weight:700;font-size:20px;letter-spacing:3px;">
+    </div>
+    <div class="field" id="depanneuse-field" style="display:none;">
+      <div class="check-item" id="depanneuse-check" onclick="toggleDepanneuse()">
+        <div class="check-dot" id="depanneuse-dot"></div>
+        <span>🚛 Déposé en dépanneuse</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Prise en charge chez *</label>
+      <select id="f-entreprise" onchange="onEntrepriseChange()">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="🟢 Europcar">
+          <option value="Charleroi Europcar" data-centre="Rhode">Charleroi</option>
+          <option value="Drogenbos Europcar" data-centre="Rhode">Drogenbos</option>
+          <option value="Gare du Midi Europcar" data-centre="Rhode">Gare du Midi</option>
+          <option value="Distri Europcar" data-centre="Rhode">Distri</option>
+          <option value="Airport Europcar" data-centre="Rhode">Aéroport</option>
+          <option value="Liège Europcar" data-centre="Hannut">Liège</option>
+        </optgroup>
+        <optgroup label="🔴 Bpost">
+          <option value="Kampenhout Bpost" data-centre="Zaventem">Kampenhout</option>
+          <option value="Herent Bpost" data-centre="Zaventem">Herent</option>
+          <option value="Zaventem Bpost" data-centre="Zaventem">Zaventem</option>
+          <option value="Haacht Bpost" data-centre="Zaventem">Haacht</option>
+          <option value="Rhode Bpost" data-centre="Rhode">Rhode</option>
+          <option value="Huizingen Bpost" data-centre="Rhode">Huizingen</option>
+        </optgroup>
+        <optgroup label="🔵 Autres">
+          <option value="Bravo Auto" data-centre="Zaventem">Bravo Auto</option>
+          <option value="General Lease" data-centre="Zaventem">General Lease</option>
+          <option value="Spoticar" data-centre="Rhode">Spoticar</option>
+          <option value="Stellantis" data-centre="Rhode">Stellantis</option>
+          <option value="Cambio" data-centre="Rhode">Cambio</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field" id="km-field" style="display:none;">
+      <label>Kilométrage * <span style="color:var(--accent);font-size:11px;">(obligatoire Bpost)</span></label>
+      <input type="number" id="f-km" placeholder="Ex: 87500" min="0" style="font-size:18px;font-weight:700;">
+    </div>
+    <div class="field">
+      <label>Déposé au centre</label>
+      <div id="centre-display" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--muted);">— sélectionne d'abord le client —</div>
+      <input type="hidden" id="f-centre">
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Travaux à réaliser</div>
+    <div class="check-grid" id="travaux-grid"></div>
+    <div class="field" style="margin-top:14px;">
+      <label>Remarques</label>
+      <textarea id="f-remarques" placeholder="Autres travaux, observations..."></textarea>
+    </div>
+    <button class="btn btn-primary" style="margin-top:8px;" onclick="submitVehicle()">✅ ENREGISTRER</button>
+  </div>
+</div>
+
+<!-- LISTE -->
+<div class="page" id="page-liste">
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-blue" style="font-size:13px;padding:10px;" onclick="openMultiEnlModal()">🚗 Enlèvement multiple</button>
+    <button class="btn btn-ghost" style="font-size:13px;padding:10px;flex-shrink:0;" onclick="refreshData()">🔄 Refresh</button>
+  </div>
+  <!-- Centre tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;" id="centre-tabs">
+    <button class="filter-btn active" style="border-color:var(--accent);color:var(--accent);" onclick="setCentreTab('tous',this)">Tous les centres</button>
+    <button class="filter-btn" onclick="setCentreTab('Zaventem',this)">🏭 Zaventem</button>
+    <button class="filter-btn" onclick="setCentreTab('Rhode',this)">🏭 Rhode</button>
+    <button class="filter-btn" onclick="setCentreTab('Hannut',this)">🏭 Hannut</button>
+  </div>
+  <!-- Status filters -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterVehicles('tous',this)">Tous</button>
+    <button class="filter-btn" onclick="filterVehicles('Déposé garage',this)">🏭 Déposé</button>
+    <button class="filter-btn" onclick="filterVehicles('Bon demandé / En réparation',this)">🔧 Réparation</button>
+    <button class="filter-btn" onclick="filterVehicles('Terminé',this)">✅ Terminé</button>
+  </div>
+  <div style="margin-bottom:12px;">
+    <input type="text" id="search-input" placeholder="🔍  Rechercher plaque, client..."
+      style="width:100%;background:#1f2435;border:1px solid #2a3045;border-radius:8px;padding:10px 14px;color:#e8ecf4;font-family:'Barlow',sans-serif;font-size:14px;outline:none;" oninput="renderList()">
+  </div>
+  <div id="vehicle-list"></div>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-dashboard">
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Par centre</span>
+      <button onclick="resetMensuel()" style="font-family:'Barlow Condensed';font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;">🔄 RAZ mensuelle</button>
+    </div>
+    <div id="stats-centre"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Par client</div>
+    <div id="stats-entreprise"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Types de réparation ce mois</div>
+    <div id="stats-travaux"></div>
+  </div>
+</div>
+
+<!-- ARCHIVES -->
+<div class="page" id="page-archives">
+  <div class="card" style="border-color:#3730a3;">
+    <div class="card-title" style="color:#818cf8;">📁 Véhicules Enlevés</div>
+    <div id="archive-list"></div>
+  </div>
+</div>
+
+<!-- BUREAU -->
+<div class="page-bureau" id="page-bureau">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div style="font-family:var(--font-head);font-size:26px;font-weight:800;">🖥️ Dashboard <span style="color:var(--accent);">Bureau</span></div>
+    <div class="centre-selector">
+      <button class="centre-btn active" onclick="setBureauCentre('tous',this)">Tous les centres</button>
+      <button class="centre-btn" onclick="setBureauCentre('Zaventem',this)">Zaventem</button>
+      <button class="centre-btn" onclick="setBureauCentre('Rhode',this)">Rhode</button>
+      <button class="centre-btn" onclick="setBureauCentre('Hannut',this)">Hannut</button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="bureau-grid" id="bureau-kpi"></div>
+
+  <!-- Main layout -->
+  <div class="bureau-layout">
+    <!-- LEFT COL -->
+    <div class="bureau-col">
+      <div class="bureau-card">
+        <div class="bureau-card-title">🚗 Véhicules en centre</div>
+        <div class="bureau-veh-list" id="bureau-veh-list"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">⚠️ Dépassement 5 jours</div>
+        <div id="bureau-alerts"></div>
+      </div>
+    </div>
+    <!-- RIGHT COL -->
+    <div class="bureau-col">
+      <div class="bureau-card">
+        <div class="bureau-card-title">📦 Véhicules par client (mois)</div>
+        <div id="bureau-by-client"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">⏱️ Immobilisation moyenne par client</div>
+        <div id="bureau-immo-client"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">🔧 Immobilisation par type de travail</div>
+        <div id="bureau-immo-travail"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ATELIER -->
+<div class="page" id="page-atelier">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:#34d399;">🔧 Atelier</div>
+    <div class="centre-selector" id="atelier-centre-selector">
+      <button class="centre-btn active" onclick="setAtelierCentre('Zaventem',this)">Zaventem</button>
+      <button class="centre-btn" onclick="setAtelierCentre('Rhode',this)">Rhode</button>
+      <button class="centre-btn" onclick="setAtelierCentre('Hannut',this)">Hannut</button>
+    </div>
+  </div>
+  <div class="atelier-layout">
+    <div>
+      <div class="atelier-col-title" style="color:var(--muted);">📋 Sans dossier</div>
+      <div id="atelier-sans-dossier"></div>
+    </div>
+    <div>
+      <div class="atelier-col-title" style="color:#34d399;">📁 Dossier constitué</div>
+      <div id="atelier-avec-dossier"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DOSSIER MODAL -->
+<div class="dossier-overlay" id="dossier-modal">
+  <div class="dossier-modal">
+    <div class="dossier-title" id="dossier-plate">—</div>
+    <div class="dossier-sub" id="dossier-info"></div>
+    <div class="field">
+      <label>Notes techniques</label>
+      <textarea id="dossier-note" placeholder="Décris les travaux, observations, pièces nécessaires..." style="min-height:120px;"></textarea>
+    </div>
+    <div class="field">
+      <label>Photos</label>
+      <div class="photo-grid" id="dossier-photo-grid">
+        <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-cam').click()"><span>📷</span>Photo</div>
+        <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-alb').click()"><span>🖼️</span>Album</div>
+      </div>
+      <input type="file" id="dossier-photo-cam" accept="image/*" capture="environment" onchange="addDossierPhoto(event)" style="display:none;">
+      <input type="file" id="dossier-photo-alb" accept="image/*" onchange="addDossierPhoto(event)" style="display:none;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeDossierModal()">Annuler</button>
+      <button class="btn" style="background:#059669;color:#fff;" onclick="saveDossier()">💾 ENREGISTRER</button>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-danger" id="dossier-delete-btn" onclick="deleteDossier()" style="display:none;font-size:13px;">🗑 Supprimer le dossier</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div class="photo-viewer" id="photo-viewer" onclick="closePhotoViewer()">
+  <button class="photo-viewer-close" onclick="closePhotoViewer()">✕</button>
+  <img id="photo-viewer-img" src="" alt="">
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-plate">—</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- MODAL ENLÈVEMENT SIMPLE -->
+<div class="enl-modal-overlay" id="enl-modal">
+  <div class="enl-modal">
+    <div class="enl-title">🚗 Enlèvement</div>
+    <div class="field">
+      <label>Qui enlève ?</label>
+      <select id="enl-qui">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
+        <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+      </select>
+    </div>
+    <div class="field">
+      <label>Destination</label>
+      <select id="enl-dest" onchange="toggleAutre()">
+        <option value="">— Sélectionner —</option>
+        <option id="enl-dest-origine" value="origine">Lieu d'origine</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="field" id="enl-autre-field" style="display:none;">
+      <label>Préciser</label>
+      <input type="text" id="enl-autre-input" placeholder="Adresse ou lieu...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeEnlModal()">Annuler</button>
+      <button class="btn btn-success" onclick="confirmEnlevement()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENLÈVEMENT MULTIPLE -->
+<div class="enl-modal-overlay" id="multi-enl-modal">
+  <div class="enl-modal">
+    <div class="enl-title">🚗 Enlèvement multiple</div>
+    <div class="section-label">Sélectionne les véhicules</div>
+    <div class="multi-veh-list" id="multi-veh-list"></div>
+    <div class="field">
+      <label>Qui enlève ?</label>
+      <select id="multi-enl-qui">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
+        <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeMultiEnlModal()">Annuler</button>
+      <button class="btn btn-success" onclick="confirmMultiEnlevement()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CHAUFFEURS=['Said','Yassin','Joachim','Kevin','Viktor','Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const BUREAU=['Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const CENTRES=['Zaventem','Rhode','Hannut'];
+const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Accident','Batterie'];
+const STATUS_LIST=['Déposé garage','Bon demandé / En réparation','Terminé'];
+const STATUS_CLASS={'Déposé garage':'badge-depose','Bon demandé / En réparation':'badge-reparation','Terminé':'badge-termine','Enlevé':'badge-enleve'};
+
+let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null;
+
+// ── HELPERS ──
+function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
+function daysBetween(ts1,ts2){ return Math.round(Math.abs(ts2-ts1)/86400000); }
+function activeVeh(){ return vehicles.filter(v=>v.status!=='Enlevé'); }
+function archivedVeh(){ return vehicles.filter(v=>v.status==='Enlevé'); }
+// Normalize client name for grouping (all Europcar = "Europcar", all Bpost = "Bpost")
+function clientGroup(name){
+  if(!name) return name;
+  if(name.toLowerCase().includes('europcar')) return 'Europcar';
+  if(name.toLowerCase().includes('bpost')) return 'Bpost';
+  return name;
+}
+
+// ── LOGIN ──
+function initLogin(){
+  const saved=localStorage.getItem('midas_driver');
+  if(saved){currentDriverName=saved;hideLogin();return;}
+  const btns=document.getElementById('driver-btns'); btns.innerHTML='';
+  CHAUFFEURS.forEach(name=>{
+    const b=document.createElement('button'); b.className='driver-btn'; b.textContent=name;
+    b.onclick=()=>{document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');};
+    btns.appendChild(b);
+  });
+}
+function confirmLogin(){
+  const sel=document.querySelector('.driver-btn.selected');
+  if(!sel){showToast('⚠️ Sélectionne ton nom','#ef4444');return;}
+  currentDriverName=sel.textContent; localStorage.setItem('midas_driver',currentDriverName); hideLogin();
+}
+function hideLogin(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('nav-driver-name').textContent=currentDriverName;
+  document.getElementById('encode-driver-name').textContent=currentDriverName;
+  document.getElementById('depanneuse-field').style.display=BUREAU.includes(currentDriverName)?'block':'none';
+  // Redirect based on profile
+  if(currentDriverName==='Omar'){
+    showPage('dashboard');
+  } else if(BUREAU.includes(currentDriverName)){
+    // Set default centre filter based on login
+    if(currentDriverName==='Midas Zaventem') { bureauCentre='Zaventem'; setDefaultCentreFilter('Zaventem'); }
+    else if(currentDriverName==='Midas Rhode') { bureauCentre='Rhode'; setDefaultCentreFilter('Rhode'); }
+    else if(currentDriverName==='Auto 5') { bureauCentre='Zaventem'; setDefaultCentreFilter('Zaventem'); }
+    showPage('liste');
+  }
+}
+
+function setDefaultCentreFilter(centre){
+  currentCentreTab = centre;
+  // Update centre tab buttons after DOM is ready
+  setTimeout(()=>{
+    const tabs = document.querySelectorAll('#centre-tabs .filter-btn');
+    tabs.forEach(b=>b.classList.remove('active'));
+    const centreNames = ['tous','Zaventem','Rhode','Hannut'];
+    const idx = centreNames.indexOf(centre);
+    if(idx>=0 && tabs[idx]) tabs[idx].classList.add('active');
+  }, 100);
+}
+function logout(){ localStorage.removeItem('midas_driver'); currentDriverName=null; document.getElementById('login-screen').style.display='flex'; document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected')); }
+
+// ── TRAVAUX CHECKBOXES ──
+const grid=document.getElementById('travaux-grid');
+TRAVAUX.forEach(t=>{
+  const d=document.createElement('div'); d.className='check-item'; d.dataset.travail=t;
+  d.innerHTML=`<div class="check-dot"></div><span>${t}</span>`;
+  d.onclick=()=>{d.classList.toggle('checked');d.querySelector('.check-dot').textContent=d.classList.contains('checked')?'✓':'';};
+  grid.appendChild(d);
+});
+function toggleDepanneuse(){ const el=document.getElementById('depanneuse-check'),dot=document.getElementById('depanneuse-dot'); el.classList.toggle('checked'); dot.textContent=el.classList.contains('checked')?'✓':''; }
+function getCheckedTravaux(){ return[...document.querySelectorAll('.check-item.checked')].map(el=>el.dataset.travail); }
+
+// ── ENTREPRISE → CENTRE ──
+function onEntrepriseChange(){
+  const sel=document.getElementById('f-entreprise');
+  const opt=sel.options[sel.selectedIndex];
+  const centre=opt?opt.getAttribute('data-centre'):'';
+  const display=document.getElementById('centre-display');
+  const hidden=document.getElementById('f-centre');
+  const val=sel.value;
+  if(val==='Distri Europcar'||val==='Airport Europcar'){
+    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option></select>`;
+    hidden.value='';
+  } else if(centre){
+    display.textContent='🏭 Centre '+centre; display.style.color='var(--accent)'; hidden.value=centre;
+  } else {
+    display.textContent="— sélectionne d'abord le client —"; display.style.color='var(--muted)'; hidden.value='';
+  }
+  const isBpost=val.toLowerCase().includes('bpost');
+  document.getElementById('km-field').style.display=isBpost?'block':'none';
+  if(!isBpost) document.getElementById('f-km').value='';
+}
+
+// ── SUBMIT ──
+function submitVehicle(){
+  const plaque=document.getElementById('f-plaque').value.trim().toUpperCase();
+  const entreprise=document.getElementById('f-entreprise').value;
+  const centre=document.getElementById('f-centre').value;
+  const remarques=document.getElementById('f-remarques').value.trim();
+  const travaux=getCheckedTravaux();
+  const kmVal=document.getElementById('f-km').value.trim();
+  const isBpost=entreprise.toLowerCase().includes('bpost');
+  if(!plaque||!entreprise||!centre){showToast('⚠️ Remplis tous les champs obligatoires','#ef4444');return;}
+  if(isBpost&&!kmVal){showToast('⚠️ Kilométrage obligatoire pour Bpost !','#ef4444');return;}
+  const depanneuse=document.getElementById('depanneuse-check').classList.contains('checked');
+  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
+  save();
+  const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
+  monthly[centre]=(monthly[centre]||0)+1;
+  localStorage.setItem('midas_monthly',JSON.stringify(monthly));
+  resetForm(); showToast('✅ Véhicule enregistré !');
+}
+function resetForm(){
+  ['f-plaque','f-remarques'].forEach(id=>document.getElementById(id).value='');
+  ['f-entreprise','f-centre','f-km'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('km-field').style.display='none';
+  const disp=document.getElementById('centre-display'); disp.textContent="— sélectionne d'abord le client —"; disp.style.color='var(--muted)';
+  const dc=document.getElementById('depanneuse-check'); dc.classList.remove('checked'); document.getElementById('depanneuse-dot').textContent='';
+  document.querySelectorAll('.check-item.checked').forEach(el=>{el.classList.remove('checked');el.querySelector('.check-dot').textContent='';});
+}
+
+// ── SUPABASE CONFIG ──
+const SUPA_URL = 'https://kshgenauujqlfjammwvi.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzaGdlbmF1dWpxbGZqYW1td3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNjUzNTgsImV4cCI6MjA5MzY0MTM1OH0.EbHz_HCriDJ-8uYVKk2kHeBQes5ybBEql7Z_QS1CcT4';
+const ROW_ID = 1;
+
+async function save(){
+  try {
+    const payload = JSON.stringify(vehicles);
+    const res = await fetch(`${SUPA_URL}/rest/v1/fleet_data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() })
+    });
+    try{ localStorage.setItem('fleettrack_v4', payload); }catch(e){}
+    if(!res.ok){ const txt = await res.text(); console.warn('Save failed:', res.status, txt); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
+  } catch(e){ console.warn('Save error:', e); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
+}
+
+async function loadVehicles(){
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/fleet_data?id=eq.${ROW_ID}&select=data`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    const rows = await res.json();
+    if(rows && rows.length > 0 && rows[0].data) {
+      return JSON.parse(rows[0].data);
+    }
+    // Fallback to localStorage if Supabase empty
+    return JSON.parse(localStorage.getItem('fleettrack_v4')||'[]');
+  } catch(e) {
+    console.warn('Load error:', e);
+    return JSON.parse(localStorage.getItem('fleettrack_v4')||'[]');
+  }
+}
+
+// ── PAGES ──
+function showPage(id){
+  document.querySelectorAll('.page,.page-bureau').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById('page-'+id); if(el) el.classList.add('active');
+  const tabs={'encode':0,'liste':1,'dashboard':2,'archives':3,'bureau':4,'atelier':5};
+  if(tabs[id]!==undefined) document.querySelectorAll('.nav-tab')[tabs[id]].classList.add('active');
+  if(id==='liste') renderList();
+  if(id==='dashboard') renderDashboard();
+  if(id==='archives') renderArchives();
+  if(id==='bureau') renderBureau();
+  if(id==='atelier') renderAtelier();
+}
+let currentCentreTab='tous';
+function setCentreTab(c,btn){
+  currentCentreTab=c;
+  document.querySelectorAll('#centre-tabs .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+function filterVehicles(f,btn){ currentFilter=f; document.querySelectorAll('.filter-bar .filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderList(); }
+
+// ── VEHICLE CARD HTML ──
+function vehCardHtml(v,archived=false){
+  return `<div class="veh-card" onclick="openModal(${v.id})" style="${archived?'border-color:#3730a3;':''}">
+    <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span></div>
+    <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
+    <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
+    ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
+    ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
+    ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
+    ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
+  </div>`;
+}
+
+function renderList(){
+  const search=(document.getElementById('search-input').value||'').toLowerCase();
+  let list=activeVeh();
+  // Filter by centre tab
+  if(currentCentreTab!=='tous') list=list.filter(v=>v.centre===currentCentreTab);
+  // Filter by status
+  if(currentFilter!=='tous') list=list.filter(v=>v.status===currentFilter);
+  // Search
+  if(search) list=list.filter(v=>v.plaque.toLowerCase().includes(search)||v.entreprise.toLowerCase().includes(search)||(v.chauffeur||'').toLowerCase().includes(search));
+  // Sort by most recent first
+  list.sort((a,b)=>b.timestamp-a.timestamp);
+  document.getElementById('vehicle-list').innerHTML=list.length===0?`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Aucun véhicule</div></div>`:list.map(v=>vehCardHtml(v)).join('');
+}
+
+function renderArchives(){
+  const list=archivedVeh();
+  document.getElementById('archive-list').innerHTML=list.length===0
+    ?`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Aucun véhicule archivé</div></div>`
+    :list.map(v=>{
+      const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
+      return `<div class="veh-card" onclick="openModal(${v.id})" style="border-color:#3730a3;">
+        <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge badge-enleve">Enlevé</span></div>
+        <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
+        <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
+        ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+        ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
+        ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
+        ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}
+      </div>`;
+    }).join('');
+}
+
+// ── MODAL ──
+function openModal(id){
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  document.getElementById('modal-plate').textContent=v.plaque;
+  const isEnleve=v.status==='Enlevé';
+  const statusBtns=STATUS_LIST.map(s=>`<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`).join('');
+  const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
+  document.getElementById('modal-body').innerHTML=`
+    <div style="margin-bottom:12px;"><span class="badge ${STATUS_CLASS[v.status]}" style="font-size:13px;padding:5px 14px;">${v.status}</span></div>
+    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
+    <div class="veh-meta" style="margin-bottom:8px;">🏭 Centre : <span style="color:#e8ecf4;">${v.centre}</span></div>
+    <div class="veh-meta" style="margin-bottom:8px;">👤 <span style="color:#e8ecf4;">${v.chauffeur}</span></div>
+    ${v.km?`<div class="veh-meta" style="margin-bottom:8px;">🔢 <span style="color:var(--accent);font-weight:700;">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.depanneuse?`<div class="veh-meta" style="margin-bottom:8px;">🚛 <span style="color:#38bdf8;">Arrivée en dépanneuse</span></div>`:''}
+    <div class="veh-meta" style="margin-bottom:12px;">🕐 ${v.date}</div>
+    ${v.travaux&&v.travaux.length>0?`<div class="section-label">Travaux</div><div class="veh-tags" style="margin-bottom:12px;">${v.travaux.map(t=>`<span class="veh-tag" style="background:#2a2010;color:#f59e0b;">${t}</span>`).join('')}</div>`:''}
+    ${v.remarques?`<div class="veh-meta" style="margin-bottom:12px;">💬 ${v.remarques}</div>`:''}
+    ${v.dossier?`<div class="divider"></div><div class="section-label" style="color:#34d399;">📁 Dossier Atelier</div><div class="veh-meta" style="margin-bottom:8px;white-space:pre-wrap;">${v.dossier.note||'—'}</div>${v.dossier.photos&&v.dossier.photos.length>0?`<div class="photo-grid" style="margin-top:8px;">${v.dossier.photos.map(p=>`<img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>`).join('')}</div>`:''}`:''}
+    ${v.enlevement?`<div class="divider"></div><div class="section-label">Enlèvement</div>
+      <div class="veh-meta">🚗 Par : <span style="color:#e8ecf4;">${v.enlevement.qui}</span></div>
+      <div class="veh-meta">📍 Destination : <span style="color:#e8ecf4;">${v.enlevement.destination}</span></div>
+      <div class="veh-meta">🕐 ${v.enlevement.date}</div>
+      ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}`:''}
+    ${!isEnleve?`<div class="divider"></div><div class="section-label">Changer statut</div>
+      <div class="status-btns">${statusBtns}</div>
+      <div style="margin-top:10px;"><button class="btn btn-success" style="font-size:14px;" onclick="openEnlModal(${id})">🚗 MARQUER COMME ENLEVÉ</button></div>
+      <div style="margin-top:10px;"><button class="btn btn-danger" style="font-size:14px;" onclick="deleteVehicle(${id})">🗑 Supprimer</button></div>`:''}
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+function changeStatus(id,status){ const v=vehicles.find(x=>x.id===id);if(!v)return;v.status=status;save();openModal(id);showToast('Statut : '+status);renderList(); }
+function deleteVehicle(id){ if(!confirm('Supprimer ?'))return;vehicles=vehicles.filter(v=>v.id!==id);save();closeModal();renderList();showToast('Supprimé','#ef4444'); }
+function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open'); }
+
+// ── ENLÈVEMENT ──
+function openEnlModal(id){
+  pendingEnlId=id; const v=vehicles.find(x=>x.id===id);
+  document.getElementById('enl-dest-origine').textContent="Lieu d'origine : "+v.entreprise;
+  ['enl-qui','enl-dest'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('enl-autre-field').style.display='none';
+  document.getElementById('enl-autre-input').value='';
+  document.getElementById('enl-modal').classList.add('open');
+}
+function closeEnlModal(){ document.getElementById('enl-modal').classList.remove('open');pendingEnlId=null; }
+function toggleAutre(){ document.getElementById('enl-autre-field').style.display=document.getElementById('enl-dest').value==='autre'?'block':'none'; }
+function confirmEnlevement(){
+  const qui=document.getElementById('enl-qui').value, destVal=document.getElementById('enl-dest').value, autre=document.getElementById('enl-autre-input').value.trim();
+  if(!qui||!destVal){showToast('⚠️ Remplis tous les champs','#ef4444');return;}
+  if(destVal==='autre'&&!autre){showToast('⚠️ Précise la destination','#ef4444');return;}
+  const v=vehicles.find(x=>x.id===pendingEnlId);if(!v)return;
+  v.status='Enlevé'; v.enlevement={qui,destination:destVal==='origine'?v.entreprise:autre,date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()};
+  save();closeEnlModal();closeModal();renderList();showToast('✅ Véhicule enlevé');
+}
+
+function openMultiEnlModal(){
+  selectedMultiIds=[];const list=activeVeh();if(list.length===0){showToast('Aucun véhicule actif','#ef4444');return;}
+  document.getElementById('multi-enl-qui').value='';
+  document.getElementById('multi-veh-list').innerHTML=list.map(v=>`
+    <div class="multi-veh-item" id="mvi-${v.id}" onclick="toggleMultiSelect(${v.id})">
+      <div class="multi-check" id="mc-${v.id}"></div>
+      <div><div class="mveh-plate">${v.plaque}</div><div class="mveh-info">${v.entreprise} → ${v.centre} · <span class="badge ${STATUS_CLASS[v.status]}" style="font-size:10px;">${v.status}</span></div></div>
+    </div>`).join('');
+  document.getElementById('multi-enl-modal').classList.add('open');
+}
+function toggleMultiSelect(id){
+  const idx=selectedMultiIds.indexOf(id);
+  if(idx===-1) selectedMultiIds.push(id); else selectedMultiIds.splice(idx,1);
+  const item=document.getElementById('mvi-'+id),check=document.getElementById('mc-'+id);
+  if(selectedMultiIds.includes(id)){item.classList.add('selected');check.textContent='✓';}
+  else{item.classList.remove('selected');check.textContent='';}
+}
+function closeMultiEnlModal(){ document.getElementById('multi-enl-modal').classList.remove('open');selectedMultiIds=[]; }
+function confirmMultiEnlevement(){
+  const qui=document.getElementById('multi-enl-qui').value;
+  if(selectedMultiIds.length===0){showToast('⚠️ Sélectionne au moins 1 véhicule','#ef4444');return;}
+  if(!qui){showToast('⚠️ Sélectionne qui enlève','#ef4444');return;}
+  const now=Date.now();
+  selectedMultiIds.forEach(id=>{const v=vehicles.find(x=>x.id===id);if(!v)return;v.status='Enlevé';v.enlevement={qui,destination:v.entreprise,date:new Date().toLocaleString('fr-BE'),timestamp:now};});
+  save();closeMultiEnlModal();renderList();showToast(`✅ ${selectedMultiIds.length} véhicule(s) enlevé(s)`);
+}
+
+// ── STATS DASHBOARD ──
+function checkAutoReset(){
+  const today=new Date(),lastReset=localStorage.getItem('midas_last_reset'),thisMonth=today.getFullYear()+'-'+(today.getMonth()+1);
+  if(today.getDate()===1&&lastReset!==thisMonth){ localStorage.setItem('midas_monthly','{}'); localStorage.setItem('midas_last_reset',thisMonth); }
+}
+function resetMensuel(){
+  if(!confirm('Remettre les compteurs mensuels à zéro ?'))return;
+  localStorage.setItem('midas_monthly','{}');
+  localStorage.setItem('midas_last_reset',new Date().getFullYear()+'-'+(new Date().getMonth()+1));
+  renderDashboard(); showToast('✅ Compteurs remis à zéro');
+}
+function renderDashboard(){
+  checkAutoReset();
+  const active=activeVeh();
+  const d=active.filter(v=>v.status==='Déposé garage').length;
+  const r=active.filter(v=>v.status==='Bon demandé / En réparation').length;
+  const t=active.filter(v=>v.status==='Terminé').length;
+  const arch=archivedVeh().length;
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-box"><div class="stat-num" style="color:#60a5fa;">${d}</div><div class="stat-label">Déposés</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#fb923c;">${r}</div><div class="stat-label">En réparation</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#86efac;">${t}</div><div class="stat-label">Terminés</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#818cf8;">${arch}</div><div class="stat-label">Enlevés</div></div>
+  `;
+  const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
+  document.getElementById('stats-centre').innerHTML=CENTRES.map(c=>{
+    const actifs=active.filter(v=>v.centre===c).length;
+    const total=monthly[c]||0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-weight:500;">${c}</span>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:800;color:var(--accent);">${actifs}</span>
+        <span style="font-family:'Barlow Condensed';font-size:15px;color:var(--muted);">(${total} ce mois)</span>
+      </div></div>`;
+  }).join('');
+  const entreprises=[...new Set(vehicles.map(v=>v.entreprise))];
+  document.getElementById('stats-entreprise').innerHTML=entreprises.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:16px;">Aucune donnée</div>'
+    :entreprises.map(e=>{
+      const c=vehicles.filter(v=>v.entreprise===e).length;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:14px;font-weight:500;">${e}</span>
+        <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:800;color:var(--accent2);">${c}</span>
+      </div>`;
+    }).join('');
+  // Travaux ce mois
+  const monthlyVeh=vehicles.filter(v=>{
+    const d=new Date(v.timestamp);
+    const now=new Date();
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+  const travauxCount={};
+  monthlyVeh.forEach(v=>(v.travaux||[]).forEach(t=>{ travauxCount[t]=(travauxCount[t]||0)+1; }));
+  const travauxSorted=Object.entries(travauxCount).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('stats-travaux').innerHTML=travauxSorted.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:16px;">Aucune donnée ce mois</div>'
+    :travauxSorted.map(([t,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;">${t}</span>
+        <span style="font-family:'Barlow Condensed';font-size:20px;font-weight:800;color:var(--accent);">${c}</span>
+      </div>`).join('');
+}
+
+// ── BUREAU DASHBOARD ──
+function setBureauCentre(c,btn){
+  bureauCentre=c;
+  document.querySelectorAll('.centre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBureau();
+}
+
+function renderBureau(){
+  checkAutoReset();
+  const now=new Date();
+  const allActive=activeVeh();
+  const filtered=bureauCentre==='tous'?allActive:allActive.filter(v=>v.centre===bureauCentre);
+  const archived=bureauCentre==='tous'?archivedVeh():archivedVeh().filter(v=>v.centre===bureauCentre);
+
+  // Monthly vehicles (current month)
+  const monthlyAll=vehicles.filter(v=>{ const d=new Date(v.timestamp); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+  const monthly=bureauCentre==='tous'?monthlyAll:monthlyAll.filter(v=>v.centre===bureauCentre);
+
+  // Terminés ce mois
+  const terminesMois=monthly.filter(v=>v.status==='Terminé'||v.status==='Enlevé').length;
+
+  // Moyenne immobilisation (enlevés seulement = données complètes)
+  const avgImmo=(list)=>{
+    const withDays=list.filter(v=>v.enlevement);
+    if(!withDays.length) return '—';
+    const avg=withDays.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/withDays.length;
+    return avg.toFixed(1)+' j';
+  };
+
+  // KPIs
+  document.getElementById('bureau-kpi').innerHTML=`
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#60a5fa;">${filtered.length}</div><div class="bureau-stat-label">Véhicules en centre</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#f59e0b;">${monthly.length}</div><div class="bureau-stat-label">Reçus ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${terminesMois}</div><div class="bureau-stat-label">Terminés ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${archived.length}</div><div class="bureau-stat-label">Enlevés ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo(archived)}</div><div class="bureau-stat-label">Immobilisation moy.</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#ef4444;">${filtered.filter(v=>daysSince(v.timestamp)>5).length}</div><div class="bureau-stat-label">Dépassent 5 jours</div></div>
+  `;
+
+  // Liste véhicules en centre
+  document.getElementById('bureau-veh-list').innerHTML=filtered.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:20px;">Aucun véhicule en centre</div>'
+    :filtered.map(v=>{
+      const d=daysSince(v.timestamp);
+      return `<div class="bureau-veh-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="bureau-veh-plate">${v.plaque}</div>
+          <span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span>
+        </div>
+        <div class="bureau-veh-info">🏢 <span>${v.entreprise}</span> · 🏭 <span>${v.centre}</span></div>
+        <div class="bureau-veh-info">👤 <span>${v.chauffeur}</span> · 📅 <span style="color:${d>5?'#ef4444':d>3?'#fb923c':'#86efac'};">${d} jour${d>1?'s':''}</span></div>
+        ${v.travaux&&v.travaux.length>0?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
+      </div>`;
+    }).join('');
+
+  // Alertes 5+ jours
+  const alerts=filtered.filter(v=>daysSince(v.timestamp)>5);
+  document.getElementById('bureau-alerts').innerHTML=alerts.length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">✅ Aucun dépassement</div>'
+    :alerts.map(v=>{
+      const d=daysSince(v.timestamp);
+      return `<div class="alert-row">
+        <div class="alert-plate">${v.plaque} — ${d} jours</div>
+        <div class="alert-info">${v.entreprise} · ${(v.travaux||[]).join(', ')||'—'}</div>
+      </div>`;
+    }).join('');
+
+  // Par client ce mois
+  const clientCounts={};
+  monthly.forEach(v=>{ const g=clientGroup(v.entreprise); clientCounts[g]=(clientCounts[g]||0)+1; });
+  const clientSorted=Object.entries(clientCounts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('bureau-by-client').innerHTML=clientSorted.length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Aucune donnée ce mois</div>'
+    :clientSorted.map(([c,n])=>`<div class="bureau-stat-row"><span>${c}</span><span class="bureau-stat-val">${n}</span></div>`).join('');
+
+  // Immobilisation moy par client (sur enlevés)
+  const clientGroups={};
+  archived.filter(v=>v.enlevement).forEach(v=>{
+    const g=clientGroup(v.entreprise);
+    if(!clientGroups[g]) clientGroups[g]=[];
+    clientGroups[g].push(daysBetween(v.timestamp,v.enlevement.timestamp));
+  });
+  document.getElementById('bureau-immo-client').innerHTML=Object.keys(clientGroups).length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Pas encore de données</div>'
+    :Object.entries(clientGroups).map(([c,days])=>{
+      const avg=(days.reduce((s,d)=>s+d,0)/days.length).toFixed(1);
+      return `<div class="bureau-stat-row"><span>${c}</span><span class="bureau-stat-val">${avg} j</span></div>`;
+    }).join('');
+
+  // Immobilisation par type de travail & par fournisseur (sur enlevés)
+  // Structure: { travail: { client: [days] } }
+  const travauxImmo={};
+  archived.filter(v=>v.enlevement).forEach(v=>{
+    const d=daysBetween(v.timestamp,v.enlevement.timestamp);
+    const g=clientGroup(v.entreprise);
+    (v.travaux||[]).forEach(t=>{
+      if(!travauxImmo[t]) travauxImmo[t]={};
+      if(!travauxImmo[t][g]) travauxImmo[t][g]=[];
+      travauxImmo[t][g].push(d);
+    });
+  });
+  document.getElementById('bureau-immo-travail').innerHTML=Object.keys(travauxImmo).length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Pas encore de données</div>'
+    :Object.entries(travauxImmo).map(([travail,clients])=>`
+      <div style="margin-bottom:10px;">
+        <div style="font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;">${travail}</div>
+        <table class="sub-table">
+          <tr><th>Client</th><th>Moy. jours</th><th>Nb</th></tr>
+          ${Object.entries(clients).map(([c,days])=>{
+            const avg=(days.reduce((s,d)=>s+d,0)/days.length).toFixed(1);
+            return `<tr><td>${c}</td><td>${avg} j</td><td>${days.length}</td></tr>`;
+          }).join('')}
+        </table>
+      </div>`).join('');
+}
+
+// ── ATELIER ──
+let atelierCentre='Zaventem';
+let currentDossierId=null;
+let pendingPhotos=[];
+
+function setAtelierCentre(c,btn){
+  atelierCentre=c;
+  document.querySelectorAll('#atelier-centre-selector .centre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAtelier();
+}
+
+function renderAtelier(){
+  const list=activeVeh().filter(v=>v.centre===atelierCentre);
+  const sans=list.filter(v=>!v.dossier);
+  const avec=list.filter(v=>v.dossier);
+
+  const cardHtml=(v)=>`<div class="atelier-veh ${v.dossier?'has-dossier':''}" onclick="openDossierModal(${v.id})">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="atelier-veh-plate">${v.plaque}${v.dossier?'<span class="dossier-icon">📁</span>':''}</div>
+      <span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span>
+    </div>
+    <div class="atelier-veh-info">🏢 <span>${v.entreprise}</span></div>
+    <div class="atelier-veh-info">📅 <span>${daysSince(v.timestamp)} jour${daysSince(v.timestamp)>1?'s':''} au centre</span></div>
+    ${v.travaux&&v.travaux.length>0?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${v.travaux.slice(0,3).map(t=>`<span class="veh-tag">${t}</span>`).join('')}${v.travaux.length>3?`<span class="veh-tag">+${v.travaux.length-3}</span>`:''}</div>`:''}
+    ${v.dossier&&v.dossier.note?`<div style="font-size:11px;color:#34d399;margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">💬 ${v.dossier.note}</div>`:''}
+  </div>`;
+
+  const empty=(msg)=>`<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">${msg}</div>`;
+  document.getElementById('atelier-sans-dossier').innerHTML=sans.length===0?empty('Tous les véhicules ont un dossier ✅'):sans.map(cardHtml).join('');
+  document.getElementById('atelier-avec-dossier').innerHTML=avec.length===0?empty('Aucun dossier constitué'):avec.map(cardHtml).join('');
+}
+
+function openDossierModal(id){
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  currentDossierId=id;
+  pendingPhotos=v.dossier&&v.dossier.photos?[...v.dossier.photos]:[];
+  document.getElementById('dossier-plate').textContent=v.plaque;
+  document.getElementById('dossier-info').textContent=v.entreprise+' · '+v.centre+' · '+daysSince(v.timestamp)+' jour(s)';
+  document.getElementById('dossier-note').value=v.dossier&&v.dossier.note?v.dossier.note:'';
+  document.getElementById('dossier-delete-btn').style.display=v.dossier?'block':'none';
+  renderPhotoGrid();
+  document.getElementById('dossier-modal').classList.add('open');
+}
+
+function closeDossierModal(){
+  document.getElementById('dossier-modal').classList.remove('open');
+  currentDossierId=null; pendingPhotos=[];
+  document.getElementById('dossier-photo-cam').value='';
+  document.getElementById('dossier-photo-alb').value='';
+}
+
+function addDossierPhoto(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const tmpImg=new Image();
+    tmpImg.onload=function(){
+      const canvas=document.createElement('canvas');
+      const MAX=700; let w=tmpImg.width,h=tmpImg.height;
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(tmpImg,0,0,w,h);
+      pendingPhotos.push(canvas.toDataURL('image/jpeg',0.65));
+      renderPhotoGrid();
+    };
+    tmpImg.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+function renderPhotoGrid(){
+  const grid=document.getElementById('dossier-photo-grid');
+  const thumbs=pendingPhotos.map((p,i)=>`
+    <div style="position:relative;">
+      <img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>
+      <button onclick="removePhoto(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>`).join('');
+  grid.innerHTML=thumbs+`
+    <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-cam').click()"><span>📷</span>Photo</div>
+    <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-alb').click()"><span>🖼️</span>Album</div>`;
+}
+
+function removePhoto(idx){
+  pendingPhotos.splice(idx,1);
+  renderPhotoGrid();
+}
+
+function saveDossier(){
+  const v=vehicles.find(x=>x.id===currentDossierId); if(!v) return;
+  const note=document.getElementById('dossier-note').value.trim();
+  if(!note&&pendingPhotos.length===0){showToast('⚠️ Ajoute une note ou une photo','#ef4444');return;}
+  v.dossier={note,photos:[...pendingPhotos],date:new Date().toLocaleString('fr-BE')};
+  save(); closeDossierModal(); renderAtelier(); showToast('📁 Dossier enregistré','#059669');
+}
+
+function deleteDossier(){
+  if(!confirm('Supprimer ce dossier ?')) return;
+  const v=vehicles.find(x=>x.id===currentDossierId); if(!v) return;
+  v.dossier=null; save(); closeDossierModal(); renderAtelier(); showToast('Dossier supprimé','#ef4444');
+}
+
+function openPhotoViewer(src){
+  document.getElementById('photo-viewer-img').src=src;
+  document.getElementById('photo-viewer').classList.add('open');
+}
+function closePhotoViewer(){
+  document.getElementById('photo-viewer').classList.remove('open');
+}
+
+// ── AUTO REFRESH (5 min) ──
+async function refreshData(){
+  const fresh = await loadVehicles();
+  if(JSON.stringify(fresh) !== JSON.stringify(vehicles)){
+    vehicles = fresh;
+    const activePage = document.querySelector('.page.active, .page-bureau.active');
+    if(activePage){
+      const id = activePage.id.replace('page-','');
+      if(id==='liste') renderList();
+      if(id==='dashboard') renderDashboard();
+      if(id==='archives') renderArchives();
+      if(id==='bureau') renderBureau();
+      if(id==='atelier') renderAtelier();
+    }
+    showToast('🔄 Liste mise à jour','#3b82f6');
+  }
+}
+setInterval(refreshData, 300000); // 5 minutes
+
+// ── TOAST ──
+function showToast(msg,color='#22c55e'){
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.background=color; t.style.color=color==='#22c55e'?'#000':'#fff';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── INIT ──
+async function init(){
+  showToast('⏳ Chargement...','#3b82f6');
+  vehicles = await loadVehicles();
+  initLogin();
+}
+init();
+</script>
+</body>
+</html>
