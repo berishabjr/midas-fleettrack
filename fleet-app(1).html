@@ -63,7 +63,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:15px;outline:none;transition:border-color 0.2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
 .field textarea{min-height:80px;resize:vertical;}
-.field select option{background:#1f2435;}
+.field select option{background:#1f2435;color:#e8ecf4;}
+:root.light .field select option{background:#ffffff;color:#0f172a;}
 
 .active-driver-bar{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
 .active-driver-name{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--accent);}
@@ -173,6 +174,13 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 
+/* ── PIN ── */
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.2s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+.pin-btn{padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.pin-btn:hover{background:var(--accent);color:#000;border-color:var(--accent);}
+.pin-btn:active{transform:scale(0.95);}
+
 /* ── ATELIER ── */
 .atelier-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
 @media(max-width:640px){.atelier-layout{grid-template-columns:1fr;}}
@@ -241,7 +249,34 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
     <div class="login-sub">Sélectionne ton nom pour commencer</div>
     <div class="login-label">Qui es-tu ?</div>
     <div class="driver-btns" id="driver-btns"></div>
-    <button class="btn btn-primary" onclick="confirmLogin()">✅ COMMENCER</button>
+    <div id="pin-section" style="display:none;margin-bottom:16px;">
+      <div class="login-label" style="margin-top:8px;">Code PIN</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto;">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn" style="opacity:0;pointer-events:none;"></button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
+      </div>
+      <div id="pin-error" style="color:#ef4444;font-size:13px;margin-top:8px;text-align:center;display:none;">PIN incorrect !</div>
+    </div>
+    <div id="change-pin-section" style="display:none;margin-bottom:12px;">
+      <button onclick="showChangePinModal()" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;cursor:pointer;">🔑 Changer mon PIN</button>
+    </div>
+    <button class="btn btn-primary" id="login-btn" onclick="confirmLogin()">✅ COMMENCER</button>
   </div>
 </div>
 
@@ -249,8 +284,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 <nav>
   <div class="nav-brand">Midas <span>FleetTrack</span><small id="nav-driver-name"></small></div>
   <div class="nav-right">
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="showPage('encode')">📋 Encoder</button>
+    <div class="nav-tabs" id="nav-tabs-container">
+      <button class="nav-tab active" onclick="showPage('encode')">📋 Déposer</button>
       <button class="nav-tab" onclick="showPage('liste')">🚗 Véhicules</button>
       <button class="nav-tab" onclick="showPage('dashboard')">📊 Stats</button>
       <button class="nav-tab" onclick="showPage('archives')">📁 Archives</button>
@@ -270,7 +305,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
     <span style="font-size:24px;">👤</span>
   </div>
   <div class="card">
-    <div class="card-title">📋 Nouveau Véhicule</div>
+    <div class="card-title">📋 Nouveau Dépôt</div>
     <div class="field">
       <label>Plaque *</label>
       <input type="text" id="f-plaque" placeholder="1-ABC-123" style="text-transform:uppercase;font-weight:700;font-size:20px;letter-spacing:3px;">
@@ -296,6 +331,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <optgroup label="🔴 Bpost">
           <option value="Kampenhout Bpost" data-centre="Zaventem">Kampenhout</option>
           <option value="Herent Bpost" data-centre="Zaventem">Herent</option>
+          <option value="Herne Bpost" data-centre="Rhode">Herne</option>
           <option value="Zaventem Bpost" data-centre="Zaventem">Zaventem</option>
           <option value="Haacht Bpost" data-centre="Zaventem">Haacht</option>
           <option value="Rhode Bpost" data-centre="Rhode">Rhode</option>
@@ -307,6 +343,9 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
           <option value="Spoticar" data-centre="Rhode">Spoticar</option>
           <option value="Stellantis" data-centre="Rhode">Stellantis</option>
           <option value="Cambio" data-centre="Rhode">Cambio</option>
+          <option value="ALD-Axus-Ayvens" data-centre="multi">ALD-Axus-Ayvens</option>
+          <option value="Efkon" data-centre="Zaventem">Efkon</option>
+          <option value="Arval" data-centre="Zaventem">Arval (Auto 5)</option>
         </optgroup>
       </select>
     </div>
@@ -327,8 +366,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       <textarea id="f-remarques" placeholder="Autres travaux, observations..."></textarea>
     </div>
     <div class="field">
-      <label>Photo du véhicule</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+      <label>Photos du véhicule <span style="color:var(--muted);font-size:11px;">(max 5)</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
         <div onclick="document.getElementById('enc-photo-cam').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:26px;">📷</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Prendre photo</div>
         </div>
@@ -338,8 +377,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       </div>
       <input type="file" id="enc-photo-cam" accept="image/*" capture="environment" onchange="handleEncodePhoto(event)" style="display:none;">
       <input type="file" id="enc-photo-alb" accept="image/*" onchange="handleEncodePhoto(event)" style="display:none;">
-      <img id="enc-photo-preview" style="display:none;width:100%;border-radius:10px;max-height:180px;object-fit:cover;margin-top:4px;border:1px solid var(--border);" alt="Aperçu">
-      <button id="enc-photo-remove" onclick="removeEncodePhoto()" style="display:none;margin-top:6px;width:100%;padding:6px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:12px;cursor:pointer;font-family:var(--font-head);">✕ Supprimer la photo</button>
+      <div id="enc-photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;"></div>
     </div>
 
     <button class="btn btn-primary" style="margin-top:8px;" onclick="submitVehicle()">✅ ENREGISTRER</button>
@@ -532,7 +570,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <option value="">— Sélectionner —</option>
         <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
         <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
-        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
       </select>
     </div>
     <div class="field">
@@ -540,6 +578,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       <select id="enl-dest" onchange="toggleAutre()">
         <option value="">— Sélectionner —</option>
         <option id="enl-dest-origine" value="origine">Lieu d'origine</option>
+        <option value="Transfert concessionnaire">Transfert concessionnaire</option>
+        <option value="Carrosserie">Carrosserie</option>
         <option value="autre">Autre</option>
       </select>
     </div>
@@ -566,7 +606,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <option value="">— Sélectionner —</option>
         <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
         <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
-        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
@@ -581,12 +621,31 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 <script>
 const CHAUFFEURS=['Said','Yassin','Joachim','Kevin','Viktor','Midas Rhode','Midas Zaventem','Auto 5','Omar'];
 const BUREAU=['Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const PROFILE_TABS = {
+  'Said':           ['encode','liste','dashboard'],
+  'Yassin':         ['encode','liste','dashboard'],
+  'Joachim':        ['encode','liste','dashboard'],
+  'Kevin':          ['encode','liste','dashboard'],
+  'Viktor':         ['encode','liste','dashboard'],
+  'Midas Zaventem': ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Midas Rhode':    ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Auto 5':         ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Omar':           ['encode','liste','dashboard','archives','bureau','atelier'],
+};
+const TAB_LABELS = {
+  'encode':    ['📋 Déposer',   "showPage('encode')"],
+  'liste':     ['🚗 Véhicules', "showPage('liste')"],
+  'dashboard': ['📊 Stats',     "showPage('dashboard')"],
+  'archives':  ['📁 Archives',  "showPage('archives')"],
+  'bureau':    ["🖥️ Bureau",    "showPage('bureau')"],
+  'atelier':   ['🔧 Atelier',   "showPage('atelier')"],
+};
 const CENTRES=['Zaventem','Rhode','Hannut'];
 const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Accident','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.'];
 const STATUS_LIST=['Déposé garage','Bon demandé / En réparation','Terminé'];
 const STATUS_CLASS={'Déposé garage':'badge-depose','Bon demandé / En réparation':'badge-reparation','Terminé':'badge-termine','Enlevé':'badge-enleve'};
 
-let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotoData=null;
+let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotos=[];
 
 // ── HELPERS ──
 function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
@@ -602,26 +661,105 @@ function clientGroup(name){
 }
 
 // ── LOGIN ──
+let currentPin='';
+let loginPins={};
+
+async function loadPins(){
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/pins?select=nom,pin`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`}
+    });
+    const rows=await res.json();
+    if(Array.isArray(rows)) rows.forEach(r=>{ loginPins[r.nom]=r.pin; });
+  }catch(e){ console.warn('Pin load error:',e); }
+}
+
 function initLogin(){
   const saved=localStorage.getItem('midas_driver');
   if(saved){currentDriverName=saved;hideLogin();return;}
   const btns=document.getElementById('driver-btns'); btns.innerHTML='';
   CHAUFFEURS.forEach(name=>{
     const b=document.createElement('button'); b.className='driver-btn'; b.textContent=name;
-    b.onclick=()=>{document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');};
+    b.onclick=()=>{
+      document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+      currentPin='';
+      updatePinDots();
+      document.getElementById('pin-section').style.display='block';
+      document.getElementById('pin-error').style.display='none';
+      document.getElementById('login-btn').style.display='none';
+    };
     btns.appendChild(b);
   });
 }
+
+function pinPress(val){
+  if(val==='⌫'){ currentPin=currentPin.slice(0,-1); }
+  else if(val===''){ return; }
+  else if(currentPin.length<4){ currentPin+=val; }
+  updatePinDots();
+  if(currentPin.length===4) setTimeout(checkPin,150);
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot) dot.className='pin-dot'+(i<currentPin.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  const sel=document.querySelector('.driver-btn.selected');
+  if(!sel) return;
+  const name=sel.textContent;
+  const expected=loginPins[name]||'1234';
+  if(currentPin===expected){
+    currentDriverName=name;
+    localStorage.setItem('midas_driver',name);
+    hideLogin();
+  } else {
+    document.getElementById('pin-error').style.display='block';
+    currentPin='';
+    updatePinDots();
+    setTimeout(()=>{ document.getElementById('pin-error').style.display='none'; },1500);
+  }
+}
+
 function confirmLogin(){
   const sel=document.querySelector('.driver-btn.selected');
   if(!sel){showToast('⚠️ Sélectionne ton nom','#ef4444');return;}
-  currentDriverName=sel.textContent; localStorage.setItem('midas_driver',currentDriverName); hideLogin();
+  if(currentPin.length<4){showToast('⚠️ Entre ton PIN','#ef4444');return;}
+  checkPin();
+}
+
+// Change PIN
+function showChangePinModal(){
+  const newPin=prompt('Entre ton nouveau PIN (4 chiffres):');
+  if(!newPin||!/^\d{4}$/.test(newPin)){showToast('⚠️ PIN invalide (4 chiffres)','#ef4444');return;}
+  changePin(currentDriverName,newPin);
+}
+
+async function changePin(name,newPin){
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/pins?nom=eq.${encodeURIComponent(name)}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Prefer':'return=minimal'},
+      body:JSON.stringify({pin:newPin})
+    });
+    loginPins[name]=newPin;
+    showToast('✅ PIN modifié !');
+  }catch(e){ showToast('⚠️ Erreur modification PIN','#ef4444'); }
 }
 function hideLogin(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('nav-driver-name').textContent=currentDriverName;
   document.getElementById('encode-driver-name').textContent=currentDriverName;
   document.getElementById('depanneuse-field').style.display=BUREAU.includes(currentDriverName)?'block':'none';
+  document.getElementById('change-pin-section').style.display='block';
+  // Build dynamic nav tabs based on profile
+  const tabs=PROFILE_TABS[currentDriverName]||['encode','liste','dashboard'];
+  const navTabs=document.getElementById('nav-tabs-container');
+  navTabs.innerHTML=tabs.map(t=>`<button class="nav-tab" onclick="${TAB_LABELS[t][1]}">${TAB_LABELS[t][0]}</button>`).join('');
   // Request notification permission
   if('Notification' in window && Notification.permission === 'default'){
     Notification.requestPermission();
@@ -661,6 +799,7 @@ TRAVAUX.forEach(t=>{
 });
 function handleEncodePhoto(e){
   const file=e.target.files[0]; if(!file) return;
+  if(encodePhotos.length>=5){showToast('⚠️ Maximum 5 photos','#ef4444');return;}
   const reader=new FileReader();
   reader.onload=function(ev){
     const tmpImg=new Image();
@@ -671,10 +810,8 @@ function handleEncodePhoto(e){
       else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
       canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(tmpImg,0,0,w,h);
-      encodePhotoData=canvas.toDataURL('image/jpeg',0.7);
-      const prev=document.getElementById('enc-photo-preview');
-      prev.src=encodePhotoData; prev.style.display='block';
-      document.getElementById('enc-photo-remove').style.display='block';
+      encodePhotos.push(canvas.toDataURL('image/jpeg',0.7));
+      renderEncodePhotos();
     };
     tmpImg.src=ev.target.result;
   };
@@ -682,13 +819,19 @@ function handleEncodePhoto(e){
   e.target.value='';
 }
 
-function removeEncodePhoto(){
-  encodePhotoData=null;
-  const prev=document.getElementById('enc-photo-preview');
-  prev.src=''; prev.style.display='none';
-  document.getElementById('enc-photo-remove').style.display='none';
-  document.getElementById('enc-photo-cam').value='';
-  document.getElementById('enc-photo-alb').value='';
+function renderEncodePhotos(){
+  const grid=document.getElementById('enc-photos-grid');
+  if(!grid) return;
+  grid.innerHTML=encodePhotos.map((p,i)=>`
+    <div style="position:relative;">
+      <img src="${p}" onclick="openPhotoViewer('${p}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+      <button onclick="removeEncodePhoto(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;">✕</button>
+    </div>`).join('');
+}
+
+function removeEncodePhoto(idx){
+  encodePhotos.splice(idx,1);
+  renderEncodePhotos();
 }
 
 function sendPushNotification(title, body){
@@ -708,8 +851,8 @@ function onEntrepriseChange(){
   const display=document.getElementById('centre-display');
   const hidden=document.getElementById('f-centre');
   const val=sel.value;
-  if(val==='Distri Europcar'||val==='Airport Europcar'){
-    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option></select>`;
+  if(val==='Distri Europcar'||val==='Airport Europcar'||val==='ALD-Axus-Ayvens'){
+    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option><option value="Hannut">Hannut</option></select>`;
     hidden.value='';
   } else if(centre){
     display.textContent='🏭 Centre '+centre; display.style.color='var(--accent)'; hidden.value=centre;
@@ -733,7 +876,7 @@ function submitVehicle(){
   if(!plaque||!entreprise||!centre){showToast('⚠️ Remplis tous les champs obligatoires','#ef4444');return;}
   if(isBpost&&!kmVal){showToast('⚠️ Kilométrage obligatoire pour Bpost !','#ef4444');return;}
   const depanneuse=document.getElementById('depanneuse-check').classList.contains('checked');
-  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,photo:encodePhotoData,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
+  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,photos:encodePhotos.length>0?[...encodePhotos]:null,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
   save();
   const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
   monthly[centre]=(monthly[centre]||0)+1;
@@ -748,7 +891,7 @@ function resetForm(){
   document.getElementById('km-field').style.display='none';
   const disp=document.getElementById('centre-display'); disp.textContent="— sélectionne d'abord le client —"; disp.style.color='var(--muted)';
   const dc=document.getElementById('depanneuse-check'); dc.classList.remove('checked'); document.getElementById('depanneuse-dot').textContent='';
-  removeEncodePhoto();
+  encodePhotos=[]; renderEncodePhotos();
   document.querySelectorAll('.check-item.checked').forEach(el=>{el.classList.remove('checked');el.querySelector('.check-dot').textContent='';});
 }
 
@@ -797,8 +940,10 @@ function showPage(id){
   document.querySelectorAll('.page,.page-bureau').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   const el=document.getElementById('page-'+id); if(el) el.classList.add('active');
-  const tabs={'encode':0,'liste':1,'dashboard':2,'archives':3,'bureau':4,'atelier':5};
-  if(tabs[id]!==undefined) document.querySelectorAll('.nav-tab')[tabs[id]].classList.add('active');
+  // Mark active tab dynamically
+  document.querySelectorAll('#nav-tabs-container .nav-tab').forEach(t=>{
+    if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
+  });
   if(id==='liste') renderList();
   if(id==='dashboard') renderDashboard();
   if(id==='archives') renderArchives();
@@ -824,7 +969,7 @@ function vehCardHtml(v,archived=false){
     ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
     ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
     ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
-    ${v.photo?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">Photo disponible</span></div>`:''}
+    ${v.photos&&v.photos.length>0?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">${v.photos.length} photo${v.photos.length>1?'s':''}</span></div>`:''}
     ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
   </div>`;
 }
@@ -882,7 +1027,8 @@ function openModal(id){
   const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
   document.getElementById('modal-body').innerHTML=`
     <div style="margin-bottom:12px;"><span class="badge ${STATUS_CLASS[v.status]}" style="font-size:13px;padding:5px 14px;">${v.status}</span></div>
-    ${v.photo?`<img src="${v.photo}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:200px;object-fit:cover;">`:''}    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
+    ${v.photos&&v.photos.length>0?`<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;'>${v.photos.map(p=>`<img src='${p}' onclick='openPhotoViewer("${p}")' style='width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;'/>`).join('')}</div>`:''}
+    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
     <div class="veh-meta" style="margin-bottom:8px;">🏭 Centre : <span style="color:#e8ecf4;">${v.centre}</span></div>
     <div class="veh-meta" style="margin-bottom:8px;">👤 <span style="color:#e8ecf4;">${v.chauffeur}</span></div>
     ${v.km?`<div class="veh-meta" style="margin-bottom:8px;">🔢 <span style="color:var(--accent);font-weight:700;">${v.km.toLocaleString()} km</span></div>`:''}
@@ -932,7 +1078,10 @@ function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return
 function openEnlModal(id){
   pendingEnlId=id; const v=vehicles.find(x=>x.id===id);
   document.getElementById('enl-dest-origine').textContent="Lieu d'origine : "+v.entreprise;
-  ['enl-qui','enl-dest'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('enl-qui').value='';
+  document.getElementById('enl-dest').value='origine';
+  document.getElementById('enl-autre-field').style.display='none';
+
   document.getElementById('enl-autre-field').style.display='none';
   document.getElementById('enl-autre-input').value='';
   document.getElementById('enl-modal').classList.add('open');
@@ -1335,7 +1484,7 @@ if(localStorage.getItem('midas_theme') === 'light'){
 // ── INIT ──
 async function init(){
   showToast('⏳ Chargement...','#3b82f6');
-  vehicles = await loadVehicles();
+  await Promise.all([loadVehicles().then(v=>vehicles=v), loadPins()]);
   initLogin();
 }
 init();
