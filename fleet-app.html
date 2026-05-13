@@ -4,8 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Midas FleetTrack</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FleetTrack">
+<meta name="theme-color" content="#f59e0b">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+:root{
+  color-scheme: dark;
+}
+:root.light{
+  --bg:#f1f5f9;--surface:#ffffff;--surface2:#e2e8f0;--border:#cbd5e1;
+  --text:#0f172a;--muted:#64748b;
+  color-scheme: light;
+}
 :root{
   --bg:#0f1117;--surface:#181c27;--surface2:#1f2435;--border:#2a3045;
   --accent:#f59e0b;--accent2:#3b82f6;--danger:#ef4444;--success:#22c55e;
@@ -51,7 +67,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:15px;outline:none;transition:border-color 0.2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
 .field textarea{min-height:80px;resize:vertical;}
-.field select option{background:#1f2435;}
+.field select option{background:#1f2435;color:#e8ecf4;}
+:root.light .field select option{background:#ffffff;color:#0f172a;}
 
 .active-driver-bar{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
 .active-driver-name{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--accent);}
@@ -161,6 +178,13 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 
+/* ── PIN ── */
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.2s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+.pin-btn{padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.pin-btn:hover{background:var(--accent);color:#000;border-color:var(--accent);}
+.pin-btn:active{transform:scale(0.95);}
+
 /* ── ATELIER ── */
 .atelier-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
 @media(max-width:640px){.atelier-layout{grid-template-columns:1fr;}}
@@ -197,6 +221,31 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 </head>
 <body>
 
+<!-- OFFLINE BANNER -->
+<div id="offline-banner" style="display:none;background:#ef4444;color:#fff;text-align:center;padding:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;position:sticky;top:56px;z-index:99;">
+  ⚠️ Pas de connexion — les données seront synchronisées dès le retour du réseau
+</div>
+
+<!-- INSTALL GUIDE MODAL -->
+<div id="install-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:24px;width:100%;max-width:420px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--accent);margin-bottom:16px;">📱 Ajouter sur l'écran d'accueil</div>
+    <div style="font-size:14px;line-height:1.8;margin-bottom:8px;"><strong style="color:var(--accent);">iPhone / iPad :</strong><br>
+      1. Ouvre le lien dans <strong>Safari</strong><br>
+      2. Appuie sur le bouton <strong>Partager</strong> (carré avec flèche ↑)<br>
+      3. Sélectionne <strong>"Sur l'écran d'accueil"</strong><br>
+      4. Appuie sur <strong>"Ajouter"</strong>
+    </div>
+    <div style="font-size:14px;line-height:1.8;margin-bottom:16px;"><strong style="color:var(--accent);">Android :</strong><br>
+      1. Ouvre le lien dans <strong>Chrome</strong><br>
+      2. Appuie sur les <strong>3 points</strong> en haut à droite<br>
+      3. Sélectionne <strong>"Ajouter à l'écran d'accueil"</strong><br>
+      4. Appuie sur <strong>"Ajouter"</strong>
+    </div>
+    <button onclick="document.getElementById('install-modal').style.display='none'" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;">✅ COMPRIS</button>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
@@ -204,7 +253,34 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
     <div class="login-sub">Sélectionne ton nom pour commencer</div>
     <div class="login-label">Qui es-tu ?</div>
     <div class="driver-btns" id="driver-btns"></div>
-    <button class="btn btn-primary" onclick="confirmLogin()">✅ COMMENCER</button>
+    <div id="pin-section" style="display:none;margin-bottom:16px;">
+      <div class="login-label" style="margin-top:8px;">Code PIN</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto;">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn" style="opacity:0;pointer-events:none;"></button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
+      </div>
+      <div id="pin-error" style="color:#ef4444;font-size:13px;margin-top:8px;text-align:center;display:none;">PIN incorrect !</div>
+    </div>
+    <div id="change-pin-section" style="display:none;margin-bottom:12px;">
+      <button onclick="showChangePinModal()" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;cursor:pointer;">🔑 Changer mon PIN</button>
+    </div>
+    <button class="btn btn-primary" id="login-btn" onclick="confirmLogin()">✅ COMMENCER</button>
   </div>
 </div>
 
@@ -212,14 +288,16 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 <nav>
   <div class="nav-brand">Midas <span>FleetTrack</span><small id="nav-driver-name"></small></div>
   <div class="nav-right">
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="showPage('encode')">📋 Encoder</button>
+    <div class="nav-tabs" id="nav-tabs-container">
+      <button class="nav-tab active" onclick="showPage('encode')">📋 Déposer</button>
       <button class="nav-tab" onclick="showPage('liste')">🚗 Véhicules</button>
       <button class="nav-tab" onclick="showPage('dashboard')">📊 Stats</button>
       <button class="nav-tab" onclick="showPage('archives')">📁 Archives</button>
       <button class="nav-tab" onclick="showPage('bureau')" style="color:#818cf8;">🖥️ Bureau</button>
       <button class="nav-tab" onclick="showPage('atelier')" style="color:#34d399;">🔧 Atelier</button>
     </div>
+    <button onclick="toggleTheme()" id="theme-btn" style="font-size:16px;background:none;border:none;cursor:pointer;padding:4px;">🌙</button>
+    <button class="logout-btn" onclick="document.getElementById('install-modal').style.display='flex'" title="Ajouter sur l'écran d'accueil">📲</button>
     <button class="logout-btn" onclick="logout()">⇄ Changer</button>
   </div>
 </nav>
@@ -231,7 +309,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
     <span style="font-size:24px;">👤</span>
   </div>
   <div class="card">
-    <div class="card-title">📋 Nouveau Véhicule</div>
+    <div class="card-title">📋 Nouveau Dépôt</div>
     <div class="field">
       <label>Plaque *</label>
       <input type="text" id="f-plaque" placeholder="1-ABC-123" style="text-transform:uppercase;font-weight:700;font-size:20px;letter-spacing:3px;">
@@ -257,6 +335,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <optgroup label="🔴 Bpost">
           <option value="Kampenhout Bpost" data-centre="Zaventem">Kampenhout</option>
           <option value="Herent Bpost" data-centre="Zaventem">Herent</option>
+          <option value="Herne Bpost" data-centre="Rhode">Herne</option>
           <option value="Zaventem Bpost" data-centre="Zaventem">Zaventem</option>
           <option value="Haacht Bpost" data-centre="Zaventem">Haacht</option>
           <option value="Rhode Bpost" data-centre="Rhode">Rhode</option>
@@ -268,6 +347,9 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
           <option value="Spoticar" data-centre="Rhode">Spoticar</option>
           <option value="Stellantis" data-centre="Rhode">Stellantis</option>
           <option value="Cambio" data-centre="Rhode">Cambio</option>
+          <option value="ALD-Axus-Ayvens" data-centre="multi">ALD-Axus-Ayvens</option>
+          <option value="Efkon" data-centre="Zaventem">Efkon</option>
+          <option value="Arval" data-centre="Zaventem">Arval (Auto 5)</option>
         </optgroup>
       </select>
     </div>
@@ -288,8 +370,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       <textarea id="f-remarques" placeholder="Autres travaux, observations..."></textarea>
     </div>
     <div class="field">
-      <label>Photo du véhicule</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+      <label>Photos du véhicule <span style="color:var(--muted);font-size:11px;">(max 5)</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
         <div onclick="document.getElementById('enc-photo-cam').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:26px;">📷</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Prendre photo</div>
         </div>
@@ -299,8 +381,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       </div>
       <input type="file" id="enc-photo-cam" accept="image/*" capture="environment" onchange="handleEncodePhoto(event)" style="display:none;">
       <input type="file" id="enc-photo-alb" accept="image/*" onchange="handleEncodePhoto(event)" style="display:none;">
-      <img id="enc-photo-preview" style="display:none;width:100%;border-radius:10px;max-height:180px;object-fit:cover;margin-top:4px;border:1px solid var(--border);" alt="Aperçu">
-      <button id="enc-photo-remove" onclick="removeEncodePhoto()" style="display:none;margin-top:6px;width:100%;padding:6px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:12px;cursor:pointer;font-family:var(--font-head);">✕ Supprimer la photo</button>
+      <div id="enc-photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;"></div>
     </div>
 
     <button class="btn btn-primary" style="margin-top:8px;" onclick="submitVehicle()">✅ ENREGISTRER</button>
@@ -356,6 +437,17 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 
 <!-- ARCHIVES -->
 <div class="page" id="page-archives">
+  <div style="margin-bottom:12px;">
+    <input type="text" id="archive-search" placeholder="🔍  Rechercher plaque, client, chauffeur..."
+      style="width:100%;background:#1f2435;border:1px solid #2a3045;border-radius:8px;padding:10px 14px;color:#e8ecf4;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+      oninput="renderArchives()">
+  </div>
+  <div class="filter-bar" id="archive-filter-bar">
+    <button class="filter-btn active" onclick="filterArchives('tous',this)">Tous</button>
+    <button class="filter-btn" onclick="filterArchives('Zaventem',this)">Zaventem</button>
+    <button class="filter-btn" onclick="filterArchives('Rhode',this)">Rhode</button>
+    <button class="filter-btn" onclick="filterArchives('Hannut',this)">Hannut</button>
+  </div>
   <div class="card" style="border-color:#3730a3;">
     <div class="card-title" style="color:#818cf8;">📁 Véhicules Enlevés</div>
     <div id="archive-list"></div>
@@ -464,6 +556,71 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
   <img id="photo-viewer-img" src="" alt="">
 </div>
 
+<!-- RAPPORTS OMAR -->
+<div class="page" id="page-rapports" style="max-width:900px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div style="font-family:var(--font-head);font-size:26px;font-weight:800;">📈 Rapports <span style="color:var(--accent);">Mensuels</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="rapports-year-select" onchange="selectedYear=parseInt(this.value);renderRapports()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font-head);font-size:14px;font-weight:600;outline:none;cursor:pointer;"></select>
+      <button onclick="exportMonthPDF()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📄 PDF mois</button>
+      <button onclick="exportYearExcel()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📊 Excel année</button>
+    </div>
+  </div>
+  <!-- Month tabs -->
+  <div style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;" id="month-tabs"></div>
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="rapports-kpi"></div>
+  <!-- Charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Véhicules reçus vs terminés</div>
+      <canvas id="chart-recus-termines" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Répartition par centre</div>
+      <canvas id="chart-par-centre" height="200"></canvas>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Top clients</div>
+      <canvas id="chart-clients" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Immobilisation moyenne (jours)</div>
+      <canvas id="chart-immo" height="200"></canvas>
+    </div>
+  </div>
+  <!-- Detail tables -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Par centre</div>
+      <div id="rapports-centres"></div>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Types de travaux</div>
+      <div id="rapports-travaux"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BON TRAVAUX -->
+<div class="enl-modal-overlay" id="bon-modal">
+  <div class="enl-modal">
+    <div class="enl-title">📋 Travaux du bon</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Coche les travaux réellement demandés/facturés</div>
+    <div class="check-grid" id="bon-travaux-grid" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Remarque bon (optionnel)</label>
+      <input type="text" id="bon-remarque" placeholder="Ex: 2 pneus remplacés, sous garantie...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+      <button class="btn btn-ghost" onclick="closeBonModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmBon()">✅ Confirmer le bon</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DETAIL -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal">
@@ -482,7 +639,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <option value="">— Sélectionner —</option>
         <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
         <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
-        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
       </select>
     </div>
     <div class="field">
@@ -490,6 +647,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
       <select id="enl-dest" onchange="toggleAutre()">
         <option value="">— Sélectionner —</option>
         <option id="enl-dest-origine" value="origine">Lieu d'origine</option>
+        <option value="Transfert concessionnaire">Transfert concessionnaire</option>
+        <option value="Carrosserie">Carrosserie</option>
         <option value="autre">Autre</option>
       </select>
     </div>
@@ -516,7 +675,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
         <option value="">— Sélectionner —</option>
         <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
         <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
-        <optgroup label="Transport"><option>Dépanneuse</option><option>Transfert concessionnaire</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
@@ -531,12 +690,32 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
 <script>
 const CHAUFFEURS=['Said','Yassin','Joachim','Kevin','Viktor','Midas Rhode','Midas Zaventem','Auto 5','Omar'];
 const BUREAU=['Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const PROFILE_TABS = {
+  'Said':           ['encode','liste','dashboard'],
+  'Yassin':         ['encode','liste','dashboard'],
+  'Joachim':        ['encode','liste','dashboard'],
+  'Kevin':          ['encode','liste','dashboard'],
+  'Viktor':         ['encode','liste','dashboard'],
+  'Midas Zaventem': ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Midas Rhode':    ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Auto 5':         ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Omar':           ['encode','liste','dashboard','archives','bureau','atelier','rapports'],
+};
+const TAB_LABELS = {
+  'encode':    ['📋 Déposer',   "showPage('encode')"],
+  'liste':     ['🚗 Véhicules', "showPage('liste')"],
+  'dashboard': ['📊 Stats',     "showPage('dashboard')"],
+  'archives':  ['📁 Archives',  "showPage('archives')"],
+  'bureau':    ["🖥️ Bureau",    "showPage('bureau')"],
+  'atelier':   ['🔧 Atelier',   "showPage('atelier')"],
+  'rapports':  ['📈 Rapports',  "showPage('rapports')"],
+};
 const CENTRES=['Zaventem','Rhode','Hannut'];
-const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Accident','Batterie'];
+const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Accident','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.'];
 const STATUS_LIST=['Déposé garage','Bon demandé / En réparation','Terminé'];
 const STATUS_CLASS={'Déposé garage':'badge-depose','Bon demandé / En réparation':'badge-reparation','Terminé':'badge-termine','Enlevé':'badge-enleve'};
 
-let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotoData=null;
+let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotos=[];
 
 // ── HELPERS ──
 function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
@@ -552,26 +731,109 @@ function clientGroup(name){
 }
 
 // ── LOGIN ──
+let currentPin='';
+let loginPins={};
+
+async function loadPins(){
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/pins?select=nom,pin`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`}
+    });
+    const rows=await res.json();
+    if(Array.isArray(rows)) rows.forEach(r=>{ loginPins[r.nom]=r.pin; });
+  }catch(e){ console.warn('Pin load error:',e); }
+}
+
 function initLogin(){
   const saved=localStorage.getItem('midas_driver');
   if(saved){currentDriverName=saved;hideLogin();return;}
   const btns=document.getElementById('driver-btns'); btns.innerHTML='';
   CHAUFFEURS.forEach(name=>{
     const b=document.createElement('button'); b.className='driver-btn'; b.textContent=name;
-    b.onclick=()=>{document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');};
+    b.onclick=()=>{
+      document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+      currentPin='';
+      updatePinDots();
+      document.getElementById('pin-section').style.display='block';
+      document.getElementById('pin-error').style.display='none';
+      document.getElementById('login-btn').style.display='none';
+    };
     btns.appendChild(b);
   });
 }
+
+function pinPress(val){
+  if(val==='⌫'){ currentPin=currentPin.slice(0,-1); }
+  else if(val===''){ return; }
+  else if(currentPin.length<4){ currentPin+=val; }
+  updatePinDots();
+  if(currentPin.length===4) setTimeout(checkPin,150);
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot) dot.className='pin-dot'+(i<currentPin.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  const sel=document.querySelector('.driver-btn.selected');
+  if(!sel) return;
+  const name=sel.textContent;
+  const expected=loginPins[name]||'1234';
+  if(currentPin===expected){
+    currentDriverName=name;
+    localStorage.setItem('midas_driver',name);
+    hideLogin();
+  } else {
+    document.getElementById('pin-error').style.display='block';
+    currentPin='';
+    updatePinDots();
+    setTimeout(()=>{ document.getElementById('pin-error').style.display='none'; },1500);
+  }
+}
+
 function confirmLogin(){
   const sel=document.querySelector('.driver-btn.selected');
   if(!sel){showToast('⚠️ Sélectionne ton nom','#ef4444');return;}
-  currentDriverName=sel.textContent; localStorage.setItem('midas_driver',currentDriverName); hideLogin();
+  if(currentPin.length<4){showToast('⚠️ Entre ton PIN','#ef4444');return;}
+  checkPin();
+}
+
+// Change PIN
+function showChangePinModal(){
+  const newPin=prompt('Entre ton nouveau PIN (4 chiffres):');
+  if(!newPin||!/^\d{4}$/.test(newPin)){showToast('⚠️ PIN invalide (4 chiffres)','#ef4444');return;}
+  changePin(currentDriverName,newPin);
+}
+
+async function changePin(name,newPin){
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/pins?nom=eq.${encodeURIComponent(name)}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Prefer':'return=minimal'},
+      body:JSON.stringify({pin:newPin})
+    });
+    loginPins[name]=newPin;
+    showToast('✅ PIN modifié !');
+  }catch(e){ showToast('⚠️ Erreur modification PIN','#ef4444'); }
 }
 function hideLogin(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('nav-driver-name').textContent=currentDriverName;
   document.getElementById('encode-driver-name').textContent=currentDriverName;
   document.getElementById('depanneuse-field').style.display=BUREAU.includes(currentDriverName)?'block':'none';
+  document.getElementById('change-pin-section').style.display='block';
+  // Build dynamic nav tabs based on profile
+  const tabs=PROFILE_TABS[currentDriverName]||['encode','liste','dashboard'];
+  const navTabs=document.getElementById('nav-tabs-container');
+  navTabs.innerHTML=tabs.map(t=>`<button class="nav-tab" onclick="${TAB_LABELS[t][1]}">${TAB_LABELS[t][0]}</button>`).join('');
+  // Request notification permission
+  if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission();
+  }
   // Redirect based on profile
   if(currentDriverName==='Omar'){
     showPage('dashboard');
@@ -607,6 +869,7 @@ TRAVAUX.forEach(t=>{
 });
 function handleEncodePhoto(e){
   const file=e.target.files[0]; if(!file) return;
+  if(encodePhotos.length>=5){showToast('⚠️ Maximum 5 photos','#ef4444');return;}
   const reader=new FileReader();
   reader.onload=function(ev){
     const tmpImg=new Image();
@@ -617,10 +880,8 @@ function handleEncodePhoto(e){
       else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
       canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(tmpImg,0,0,w,h);
-      encodePhotoData=canvas.toDataURL('image/jpeg',0.7);
-      const prev=document.getElementById('enc-photo-preview');
-      prev.src=encodePhotoData; prev.style.display='block';
-      document.getElementById('enc-photo-remove').style.display='block';
+      encodePhotos.push(canvas.toDataURL('image/jpeg',0.7));
+      renderEncodePhotos();
     };
     tmpImg.src=ev.target.result;
   };
@@ -628,13 +889,25 @@ function handleEncodePhoto(e){
   e.target.value='';
 }
 
-function removeEncodePhoto(){
-  encodePhotoData=null;
-  const prev=document.getElementById('enc-photo-preview');
-  prev.src=''; prev.style.display='none';
-  document.getElementById('enc-photo-remove').style.display='none';
-  document.getElementById('enc-photo-cam').value='';
-  document.getElementById('enc-photo-alb').value='';
+function renderEncodePhotos(){
+  const grid=document.getElementById('enc-photos-grid');
+  if(!grid) return;
+  grid.innerHTML=encodePhotos.map((p,i)=>`
+    <div style="position:relative;">
+      <img src="${p}" onclick="openPhotoViewer('${p}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+      <button onclick="removeEncodePhoto(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;">✕</button>
+    </div>`).join('');
+}
+
+function removeEncodePhoto(idx){
+  encodePhotos.splice(idx,1);
+  renderEncodePhotos();
+}
+
+function sendPushNotification(title, body){
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification(title, { body, icon: '🚗', badge: '🔔' });
+  }
 }
 
 function toggleDepanneuse(){ const el=document.getElementById('depanneuse-check'),dot=document.getElementById('depanneuse-dot'); el.classList.toggle('checked'); dot.textContent=el.classList.contains('checked')?'✓':''; }
@@ -648,8 +921,8 @@ function onEntrepriseChange(){
   const display=document.getElementById('centre-display');
   const hidden=document.getElementById('f-centre');
   const val=sel.value;
-  if(val==='Distri Europcar'||val==='Airport Europcar'){
-    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option></select>`;
+  if(val==='Distri Europcar'||val==='Airport Europcar'||val==='ALD-Axus-Ayvens'){
+    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option><option value="Hannut">Hannut</option></select>`;
     hidden.value='';
   } else if(centre){
     display.textContent='🏭 Centre '+centre; display.style.color='var(--accent)'; hidden.value=centre;
@@ -673,12 +946,14 @@ function submitVehicle(){
   if(!plaque||!entreprise||!centre){showToast('⚠️ Remplis tous les champs obligatoires','#ef4444');return;}
   if(isBpost&&!kmVal){showToast('⚠️ Kilométrage obligatoire pour Bpost !','#ef4444');return;}
   const depanneuse=document.getElementById('depanneuse-check').classList.contains('checked');
-  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,photo:encodePhotoData,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
+  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,photos:encodePhotos.length>0?[...encodePhotos]:null,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
   save();
   const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
   monthly[centre]=(monthly[centre]||0)+1;
   localStorage.setItem('midas_monthly',JSON.stringify(monthly));
   resetForm(); showToast('✅ Véhicule enregistré !');
+  // Push notification to bureau
+  sendPushNotification(`🚗 Nouveau véhicule : ${plaque}`, `${entreprise} → Centre ${centre} · ${chauffeur}`);
 }
 function resetForm(){
   ['f-plaque','f-remarques'].forEach(id=>document.getElementById(id).value='');
@@ -686,7 +961,7 @@ function resetForm(){
   document.getElementById('km-field').style.display='none';
   const disp=document.getElementById('centre-display'); disp.textContent="— sélectionne d'abord le client —"; disp.style.color='var(--muted)';
   const dc=document.getElementById('depanneuse-check'); dc.classList.remove('checked'); document.getElementById('depanneuse-dot').textContent='';
-  removeEncodePhoto();
+  encodePhotos=[]; renderEncodePhotos();
   document.querySelectorAll('.check-item.checked').forEach(el=>{el.classList.remove('checked');el.querySelector('.check-dot').textContent='';});
 }
 
@@ -735,13 +1010,16 @@ function showPage(id){
   document.querySelectorAll('.page,.page-bureau').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   const el=document.getElementById('page-'+id); if(el) el.classList.add('active');
-  const tabs={'encode':0,'liste':1,'dashboard':2,'archives':3,'bureau':4,'atelier':5};
-  if(tabs[id]!==undefined) document.querySelectorAll('.nav-tab')[tabs[id]].classList.add('active');
+  // Mark active tab dynamically
+  document.querySelectorAll('#nav-tabs-container .nav-tab').forEach(t=>{
+    if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
+  });
   if(id==='liste') renderList();
   if(id==='dashboard') renderDashboard();
   if(id==='archives') renderArchives();
   if(id==='bureau') renderBureau();
   if(id==='atelier') renderAtelier();
+  if(id==='rapports') renderRapports();
 }
 let currentCentreTab='tous';
 function setCentreTab(c,btn){
@@ -762,7 +1040,8 @@ function vehCardHtml(v,archived=false){
     ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
     ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
     ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
-    ${v.photo?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">Photo disponible</span></div>`:''}
+    ${v.bonTravaux&&v.bonTravaux.length>0?`<div class="veh-tags" style="margin-top:3px;">${v.bonTravaux.map(t=>`<span class="veh-tag" style="background:#0a1628;color:#60a5fa;">📋 ${t}</span>`).join('')}</div>`:''}
+    ${v.photos&&v.photos.length>0?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">${v.photos.length} photo${v.photos.length>1?'s':''}</span></div>`:''}
     ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
   </div>`;
 }
@@ -781,8 +1060,20 @@ function renderList(){
   document.getElementById('vehicle-list').innerHTML=list.length===0?`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Aucun véhicule</div></div>`:list.map(v=>vehCardHtml(v)).join('');
 }
 
+let archiveCentreFilter='tous';
+function filterArchives(c,btn){
+  archiveCentreFilter=c;
+  document.querySelectorAll('#archive-filter-bar .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderArchives();
+}
 function renderArchives(){
-  const list=archivedVeh();
+  const searchEl=document.getElementById('archive-search');
+  const search=searchEl?(searchEl.value||'').toLowerCase():'';
+  let list=archivedVeh();
+  if(archiveCentreFilter!=='tous') list=list.filter(v=>v.centre===archiveCentreFilter);
+  if(search) list=list.filter(v=>v.plaque.toLowerCase().includes(search)||v.entreprise.toLowerCase().includes(search)||(v.chauffeur||'').toLowerCase().includes(search));
+  list.sort((a,b)=>b.timestamp-a.timestamp);
   document.getElementById('archive-list').innerHTML=list.length===0
     ?`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Aucun véhicule archivé</div></div>`
     :list.map(v=>{
@@ -804,17 +1095,35 @@ function openModal(id){
   const v=vehicles.find(x=>x.id===id); if(!v) return;
   document.getElementById('modal-plate').textContent=v.plaque;
   const isEnleve=v.status==='Enlevé';
-  const statusBtns=STATUS_LIST.map(s=>`<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`).join('');
+  const statusBtns=STATUS_LIST.map(s=>{
+    if(s==='Bon demandé / En réparation'){
+      return `<button class="status-btn ${v.status===s?'current':''}" onclick="closeModal();openBonModal(${id})">${s}</button>`;
+    }
+    return `<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`;
+  }).join('');
   const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
   document.getElementById('modal-body').innerHTML=`
     <div style="margin-bottom:12px;"><span class="badge ${STATUS_CLASS[v.status]}" style="font-size:13px;padding:5px 14px;">${v.status}</span></div>
-    ${v.photo?`<img src="${v.photo}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:200px;object-fit:cover;">`:''}    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
+    ${v.photos&&v.photos.length>0?`<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;'>${v.photos.map(p=>`<img src='${p}' onclick='openPhotoViewer("${p}")' style='width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;'/>`).join('')}</div>`:''}
+    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
     <div class="veh-meta" style="margin-bottom:8px;">🏭 Centre : <span style="color:#e8ecf4;">${v.centre}</span></div>
     <div class="veh-meta" style="margin-bottom:8px;">👤 <span style="color:#e8ecf4;">${v.chauffeur}</span></div>
     ${v.km?`<div class="veh-meta" style="margin-bottom:8px;">🔢 <span style="color:var(--accent);font-weight:700;">${v.km.toLocaleString()} km</span></div>`:''}
     ${v.depanneuse?`<div class="veh-meta" style="margin-bottom:8px;">🚛 <span style="color:#38bdf8;">Arrivée en dépanneuse</span></div>`:''}
     <div class="veh-meta" style="margin-bottom:12px;">🕐 ${v.date}</div>
-    ${v.travaux&&v.travaux.length>0?`<div class="section-label">Travaux</div><div class="veh-tags" style="margin-bottom:12px;">${v.travaux.map(t=>`<span class="veh-tag" style="background:#2a2010;color:#f59e0b;">${t}</span>`).join('')}</div>`:''}
+    ${v.travaux&&v.travaux.length>0?`
+      <div style="background:#2a2010;border:2px solid #f59e0b;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔍 Constaté à la prise en charge</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${v.travaux.map(t=>`<span style="background:#f59e0b;color:#000;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;padding:4px 12px;border-radius:6px;">${t}</span>`).join('')}</div>
+      </div>
+    `:''}
+    ${v.bonTravaux&&v.bonTravaux.length>0?`
+      <div style="border:1px solid #2a3045;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📋 Travaux du bon</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${v.bonTravaux.map(t=>`<span style="background:#0a1628;color:#60a5fa;font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #1e3a5f;">${t}</span>`).join('')}</div>
+        ${v.bonRemarque?`<div style="font-size:12px;color:var(--muted);margin-top:8px;">💬 ${v.bonRemarque}</div>`:''}
+      </div>
+    `:''}
     ${v.remarques?`<div class="veh-meta" style="margin-bottom:12px;">💬 ${v.remarques}</div>`:''}
     ${v.dossier?`<div class="divider"></div><div class="section-label" style="color:#34d399;">📁 Dossier Atelier</div><div class="veh-meta" style="margin-bottom:8px;white-space:pre-wrap;">${v.dossier.note||'—'}</div>${v.dossier.photos&&v.dossier.photos.length>0?`<div class="photo-grid" style="margin-top:8px;">${v.dossier.photos.map(p=>`<img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>`).join('')}</div>`:''}`:''}
     ${v.enlevement?`<div class="divider"></div><div class="section-label">Enlèvement</div>
@@ -822,14 +1131,35 @@ function openModal(id){
       <div class="veh-meta">📍 Destination : <span style="color:#e8ecf4;">${v.enlevement.destination}</span></div>
       <div class="veh-meta">🕐 ${v.enlevement.date}</div>
       ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}`:''}
-    ${!isEnleve?`<div class="divider"></div><div class="section-label">Changer statut</div>
+    ${!isEnleve?`<div class="divider"></div>
+      <div class="section-label">Changer statut</div>
       <div class="status-btns">${statusBtns}</div>
+      <div class="field" style="margin-top:10px;">
+        <label>Commentaire (optionnel)</label>
+        <input type="text" id="status-comment-${id}" placeholder="Ex: En attente pièce, Retour lundi..." style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;width:100%;">
+      </div>
       <div style="margin-top:10px;"><button class="btn btn-success" style="font-size:14px;" onclick="openEnlModal(${id})">🚗 MARQUER COMME ENLEVÉ</button></div>
       <div style="margin-top:10px;"><button class="btn btn-danger" style="font-size:14px;" onclick="deleteVehicle(${id})">🗑 Supprimer</button></div>`:''}
+    ${v.statusHistory&&v.statusHistory.length>0?`
+      <div class="divider"></div>
+      <div class="section-label">📋 Historique</div>
+      ${v.statusHistory.map(h=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <div><span class="badge ${STATUS_CLASS[h.status]||'badge-depose'}">${h.status}</span>${h.comment?`<span style="color:var(--muted);margin-left:6px;">— ${h.comment}</span>`:''}</div>
+        <div style="color:var(--muted);font-size:11px;">${h.date}</div>
+      </div>`).join('')}
+    `:''}
   `;
   document.getElementById('modal').classList.add('open');
 }
-function changeStatus(id,status){ const v=vehicles.find(x=>x.id===id);if(!v)return;v.status=status;save();openModal(id);showToast('Statut : '+status);renderList(); }
+function changeStatus(id,status){
+  const v=vehicles.find(x=>x.id===id);if(!v)return;
+  const commentEl=document.getElementById('status-comment-'+id);
+  const comment=commentEl?commentEl.value.trim():'';
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status,comment,date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()});
+  v.status=status;
+  save();openModal(id);showToast('Statut : '+status);renderList();
+}
 function deleteVehicle(id){ if(!confirm('Supprimer ?'))return;vehicles=vehicles.filter(v=>v.id!==id);save();closeModal();renderList();showToast('Supprimé','#ef4444'); }
 function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open'); }
 
@@ -837,7 +1167,10 @@ function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return
 function openEnlModal(id){
   pendingEnlId=id; const v=vehicles.find(x=>x.id===id);
   document.getElementById('enl-dest-origine').textContent="Lieu d'origine : "+v.entreprise;
-  ['enl-qui','enl-dest'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('enl-qui').value='';
+  document.getElementById('enl-dest').value='origine';
+  document.getElementById('enl-autre-field').style.display='none';
+
   document.getElementById('enl-autre-field').style.display='none';
   document.getElementById('enl-autre-input').value='';
   document.getElementById('enl-modal').classList.add('open');
@@ -932,7 +1265,11 @@ function renderDashboard(){
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   });
   const travauxCount={};
-  monthlyVeh.forEach(v=>(v.travaux||[]).forEach(t=>{ travauxCount[t]=(travauxCount[t]||0)+1; }));
+  monthlyVeh.forEach(v=>{
+    // Use bonTravaux (factured) if available, else chauffeur travaux
+    const travaux=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    travaux.forEach(t=>{ travauxCount[t]=(travauxCount[t]||0)+1; });
+  });
   const travauxSorted=Object.entries(travauxCount).sort((a,b)=>b[1]-a[1]);
   document.getElementById('stats-travaux').innerHTML=travauxSorted.length===0
     ?'<div style="color:var(--muted);text-align:center;padding:16px;">Aucune donnée ce mois</div>'
@@ -1190,16 +1527,426 @@ async function refreshData(){
 }
 setInterval(refreshData, 300000); // 5 minutes
 
+// ── RAPPORTS ──
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let selectedMonth = new Date().getMonth();
+let selectedYear = new Date().getFullYear();
+let chartInstances = {};
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function createLineChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: datasets.map(d=>({
+      ...d,
+      tension: 0.4,
+      fill: true,
+      backgroundColor: d.color+'22',
+      borderColor: d.color,
+      borderWidth: 2,
+      pointBackgroundColor: d.color,
+      pointRadius: 4
+    }))},
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createBarChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(d=>({ ...d, backgroundColor: d.color+'99', borderColor: d.color, borderWidth:1 })) },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function getVehiclesForMonth(month, year){
+  return vehicles.filter(v=>{
+    const d = new Date(v.timestamp);
+    return d.getMonth()===month && d.getFullYear()===year;
+  });
+}
+
+function renderRapports(){
+  // Build year selector
+  const yearSel = document.getElementById('rapports-year-select');
+  if(yearSel){
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    // Collect all years from vehicles data
+    vehicles.forEach(v=>{ const y=new Date(v.timestamp).getFullYear(); if(!years.includes(y)) years.push(y); });
+    if(!years.includes(currentYear)) years.push(currentYear);
+    years.sort((a,b)=>b-a);
+    yearSel.innerHTML = years.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('');
+  }
+
+  // Build month tabs
+  const tabsEl = document.getElementById('month-tabs');
+  tabsEl.innerHTML = MONTHS.map((m,i)=>`
+    <button onclick="selectMonth(${i})" id="mtab-${i}" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:${i===selectedMonth?'var(--accent)':'transparent'};color:${i===selectedMonth?'#000':'var(--muted)'};font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">${m}</button>
+  `).join('');
+
+  renderMonthData(selectedMonth, selectedYear);
+}
+
+function selectMonth(m){
+  selectedMonth = m;
+  renderRapports();
+}
+
+function renderMonthData(month, year){
+  year = year || selectedYear;
+  const monthVeh = getVehiclesForMonth(month, year);
+  const enleves = monthVeh.filter(v=>v.status==='Enlevé'||v.enlevement);
+  const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+
+  // KPIs
+  const withDays = enleves.filter(v=>v.enlevement);
+  const avgImmo = withDays.length>0
+    ? (withDays.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/withDays.length).toFixed(1)
+    : '—';
+
+  document.getElementById('rapports-kpi').innerHTML = `
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#f59e0b;">${monthVeh.length}</div><div class="bureau-stat-label">Reçus</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${termines.length}</div><div class="bureau-stat-label">Terminés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${enleves.length}</div><div class="bureau-stat-label">Enlevés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo}</div><div class="bureau-stat-label">Moy. jours</div></div>
+  `;
+
+  // Chart 1: reçus vs terminés (last 6 months)
+  const last6 = [];
+  const last6Labels = [];
+  const last6Termines = [];
+  for(let i=5;i>=0;i--){
+    let m = month-i; let y = year;
+    if(m<0){m+=12;y--;}
+    last6Labels.push(MONTHS[m]);
+    last6.push(getVehiclesForMonth(m,y).length);
+    last6Termines.push(getVehiclesForMonth(m,y).filter(v=>v.status==='Terminé'||v.status==='Enlevé').length);
+  }
+  createLineChart('chart-recus-termines', last6Labels, [
+    {label:'Reçus', data:last6, color:'#f59e0b'},
+    {label:'Terminés', data:last6Termines, color:'#22c55e'}
+  ]);
+
+  // Chart 2: par centre
+  const centreData = CENTRES.map(c=>monthVeh.filter(v=>v.centre===c).length);
+  createBarChart('chart-par-centre', CENTRES, [
+    {label:'Véhicules', data:centreData, color:'#3b82f6'}
+  ]);
+
+  // Chart 3: top clients (grouped)
+  const clientMap = {};
+  monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+  const clientsSorted = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  createBarChart('chart-clients', clientsSorted.map(x=>x[0]), [
+    {label:'Véhicules', data:clientsSorted.map(x=>x[1]), color:'#a855f7'}
+  ]);
+
+  // Chart 4: immobilisation par centre (last 6 months)
+  const immoData = CENTRES.map(c=>{
+    const cVeh = last6Labels.map((_,i)=>{
+      let m=month-5+i; let y=year; if(m<0){m+=12;y--;}
+      return getVehiclesForMonth(m,y).filter(v=>v.centre===c&&v.enlevement);
+    });
+    return cVeh.map(vList=>{
+      if(!vList.length) return 0;
+      return (vList.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/vList.length).toFixed(1);
+    });
+  });
+  createLineChart('chart-immo', last6Labels, [
+    {label:'Zaventem', data:immoData[0], color:'#f59e0b'},
+    {label:'Rhode',    data:immoData[1], color:'#3b82f6'},
+    {label:'Hannut',   data:immoData[2], color:'#22c55e'}
+  ]);
+
+  // Table centres
+  document.getElementById('rapports-centres').innerHTML = CENTRES.map(c=>{
+    const n = monthVeh.filter(v=>v.centre===c).length;
+    const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+    const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+'j':'—';
+    return `<div class="bureau-stat-row"><span>${c}</span><div style="text-align:right;"><div class="bureau-stat-val">${n}</div><div style="font-size:11px;color:var(--muted);">moy: ${avg}</div></div></div>`;
+  }).join('');
+
+  // Table travaux
+  const travauxMap = {};
+  monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+  const travauxSorted = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('rapports-travaux').innerHTML = travauxSorted.length===0
+    ? '<div style="color:var(--muted);padding:8px;font-size:13px;">Aucune donnée</div>'
+    : travauxSorted.map(([t,n])=>`<div class="bureau-stat-row"><span style="font-size:13px;">${t}</span><span class="bureau-stat-val">${n}</span></div>`).join('');
+}
+
+// ── EXPORTS ──
+function exportMonthPDF(){
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const monthName = MONTHS_FULL[selectedMonth];
+    const year = selectedYear;
+    const monthVeh = getVehiclesForMonth(selectedMonth, year);
+    const enleves = monthVeh.filter(v=>v.enlevement);
+    const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+    const avgImmo = enleves.length>0
+      ? (enleves.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enleves.length).toFixed(1)
+      : '—';
+
+    // Header
+    doc.setFillColor(245,158,11);
+    doc.rect(0,0,210,25,'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text('Midas FleetTrack', 14, 10);
+    doc.setFontSize(12); doc.setFont('helvetica','normal');
+    doc.text(`Rapport mensuel — ${monthName} ${year}`, 14, 18);
+    doc.setTextColor(0,0,0);
+
+    // KPIs
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Résumé du mois', 14, 35);
+    doc.autoTable({
+      startY: 40,
+      head: [['Véhicules reçus','Terminés','Enlevés','Immobilisation moy.']],
+      body: [[monthVeh.length, termines.length, enleves.length, avgImmo+' j']],
+      headStyles: { fillColor: [245,158,11], textColor: 0 },
+      styles: { fontSize: 11, halign: 'center' }
+    });
+
+    // Par centre
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par centre', 14, doc.lastAutoTable.finalY + 12);
+    const centreRows = CENTRES.map(c=>{
+      const n = monthVeh.filter(v=>v.centre===c).length;
+      const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+' j':'—';
+      return [c, n, avg];
+    });
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Centre','Véhicules','Immobilisation moy.']],
+      body: centreRows,
+      headStyles: { fillColor: [59,130,246], textColor: 255 },
+    });
+
+    // Par client
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par client', 14, doc.lastAutoTable.finalY + 12);
+    const clientMap = {};
+    monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+    const clientRows = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[c,n]);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Client','Véhicules']],
+      body: clientRows,
+      headStyles: { fillColor: [168,85,247], textColor: 255 },
+    });
+
+    // Travaux
+    const travauxMap = {};
+    monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+    const travauxRows = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]).map(([t,n])=>[t,n]);
+    if(travauxRows.length > 0){
+      doc.setFontSize(11); doc.setFont('helvetica','bold');
+      doc.text('Types de travaux', 14, doc.lastAutoTable.finalY + 12);
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Travail','Occurrences']],
+        body: travauxRows,
+        headStyles: { fillColor: [34,197,94], textColor: 0 },
+      });
+    }
+
+    // Footer
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text(`Généré le ${new Date().toLocaleString('fr-BE')} — Midas FleetTrack`, 14, 285);
+
+    doc.save(`Midas_Rapport_${monthName}_${year}.pdf`);
+    showToast('📄 PDF téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur PDF','#ef4444'); }
+}
+
+function exportYearExcel(){
+  try {
+    const wb = window.XLSX.utils.book_new();
+    const year = selectedYear;
+
+    // Sheet 1: All vehicles of the year
+    const yearVeh = vehicles.filter(v=>new Date(v.timestamp).getFullYear()===year);
+    const rows = yearVeh.map(v=>({
+      'Mois': MONTHS_FULL[new Date(v.timestamp).getMonth()],
+      'Plaque': v.plaque,
+      'Client': v.entreprise,
+      'Centre': v.centre,
+      'Chauffeur': v.chauffeur,
+      'Statut': v.status,
+      'Date dépôt': v.date,
+      'Date enlèvement': v.enlevement?v.enlevement.date:'',
+      'Enlevé par': v.enlevement?v.enlevement.qui:'',
+      'Destination': v.enlevement?v.enlevement.destination:'',
+      'Jours au centre': v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):'',
+      'Constaté prise en charge': (v.travaux||[]).join(', ')||'—',
+      'Travaux du bon': (v.bonTravaux||[]).join(', ')||'—',
+      'Kilométrage': v.km||'',
+      'Remarques': v.remarques||''
+    }));
+    const ws1 = window.XLSX.utils.json_to_sheet(rows);
+    window.XLSX.utils.book_append_sheet(wb, ws1, 'Véhicules '+year);
+
+    // Sheet 2: Monthly summary
+    const summaryRows = MONTHS_FULL.map((m,i)=>{
+      const mv = getVehiclesForMonth(i, year);
+      const enl = mv.filter(v=>v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1):'—';
+      return {
+        'Mois': m,
+        'Reçus': mv.length,
+        'Terminés': mv.filter(v=>v.status==='Terminé'||v.status==='Enlevé').length,
+        'Enlevés': enl.length,
+        'Immobilisation moy. (j)': avg,
+        'Zaventem': mv.filter(v=>v.centre==='Zaventem').length,
+        'Rhode': mv.filter(v=>v.centre==='Rhode').length,
+        'Hannut': mv.filter(v=>v.centre==='Hannut').length,
+      };
+    });
+    const ws2 = window.XLSX.utils.json_to_sheet(summaryRows);
+    window.XLSX.utils.book_append_sheet(wb, ws2, 'Résumé mensuel');
+
+    window.XLSX.writeFile(wb, `Midas_Rapport_${year}.xlsx`);
+    showToast('📊 Excel téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur Excel','#ef4444'); }
+}
+
+// ── BON TRAVAUX ──
+let pendingBonId = null;
+
+function buildBonTravauxGrid(){
+  const grid = document.getElementById('bon-travaux-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  TRAVAUX.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'check-item';
+    d.dataset.travail = t;
+    d.innerHTML = `<div class="check-dot"></div><span>${t}</span>`;
+    d.onclick = () => {
+      d.classList.toggle('checked');
+      d.querySelector('.check-dot').textContent = d.classList.contains('checked') ? '✓' : '';
+    };
+    grid.appendChild(d);
+  });
+}
+
+function openBonModal(id){
+  pendingBonId = id;
+  const v = vehicles.find(x=>x.id===id);
+  // Pre-check existing bon travaux if any
+  buildBonTravauxGrid();
+  if(v.bonTravaux && v.bonTravaux.length>0){
+    v.bonTravaux.forEach(t=>{
+      const el = document.querySelector(`#bon-travaux-grid [data-travail="${t}"]`);
+      if(el){ el.classList.add('checked'); el.querySelector('.check-dot').textContent='✓'; }
+    });
+  }
+  document.getElementById('bon-remarque').value = v.bonRemarque||'';
+  document.getElementById('bon-modal').classList.add('open');
+}
+
+function closeBonModal(){
+  document.getElementById('bon-modal').classList.remove('open');
+  pendingBonId = null;
+}
+
+function confirmBon(){
+  const v = vehicles.find(x=>x.id===pendingBonId); if(!v) return;
+  const bonTravaux = [...document.querySelectorAll('#bon-travaux-grid .check-item.checked')].map(el=>el.dataset.travail);
+  const bonRemarque = document.getElementById('bon-remarque').value.trim();
+  if(bonTravaux.length===0){ showToast('⚠️ Coche au moins un travail','#ef4444'); return; }
+  v.bonTravaux = bonTravaux;
+  v.bonRemarque = bonRemarque;
+  v.status = 'Bon demandé / En réparation';
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status:'Bon demandé / En réparation', comment: bonTravaux.join(', ')+(bonRemarque?' — '+bonRemarque:''), date:new Date().toLocaleString('fr-BE'), timestamp:Date.now()});
+  save(); closeBonModal(); closeModal(); renderList();
+  showToast('📋 Bon enregistré');
+}
+
 // ── TOAST ──
 function showToast(msg,color='#22c55e'){
   const t=document.getElementById('toast'); t.textContent=msg; t.style.background=color; t.style.color=color==='#22c55e'?'#000':'#fff';
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+// ── OFFLINE DETECTION ──
+let offlineQueue = [];
+let isOnline = navigator.onLine;
+
+window.addEventListener('online', async () => {
+  isOnline = true;
+  document.getElementById('offline-banner').style.display = 'none';
+  if(offlineQueue.length > 0) {
+    showToast('🔄 Synchronisation en cours...','#3b82f6');
+    await save();
+    offlineQueue = [];
+    showToast('✅ Données synchronisées !');
+  }
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  document.getElementById('offline-banner').style.display = 'block';
+  showToast('⚠️ Hors ligne — sauvegarde locale','#f59e0b');
+});
+
+if(!navigator.onLine) {
+  document.getElementById('offline-banner').style.display = 'block';
+}
+
+// ── THEME ──
+function toggleTheme(){
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('midas_theme', isLight ? 'light' : 'dark');
+}
+// Restore theme
+if(localStorage.getItem('midas_theme') === 'light'){
+  document.documentElement.classList.add('light');
+  setTimeout(()=>{ const btn=document.getElementById('theme-btn'); if(btn) btn.textContent='☀️'; },100);
+}
+
 // ── INIT ──
 async function init(){
   showToast('⏳ Chargement...','#3b82f6');
-  vehicles = await loadVehicles();
+  await Promise.all([loadVehicles().then(v=>vehicles=v), loadPins()]);
   initLogin();
 }
 init();
