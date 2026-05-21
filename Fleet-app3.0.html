@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Midas FleetTrack</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FleetTrack">
+<meta name="theme-color" content="#f59e0b">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+}
+:root.light{
+  --bg:#f1f5f9;--surface:#ffffff;--surface2:#e2e8f0;--border:#cbd5e1;
+  --text:#0f172a;--muted:#64748b;
+  color-scheme: light;
+}
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1f2435;--border:#2a3045;
+  --accent:#f59e0b;--accent2:#3b82f6;--danger:#ef4444;--success:#22c55e;
+  --text:#e8ecf4;--muted:#6b7694;
+  --font-head:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;}
+
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:1px;flex-shrink:0;line-height:1;}
+.nav-brand span{color:var(--accent);}
+.nav-brand small{display:block;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:0;}
+.nav-right{display:flex;align-items:center;gap:6px;}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{font-family:var(--font-head);font-weight:600;font-size:11px;padding:5px 8px;border-radius:6px;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s;white-space:nowrap;}
+.nav-tab.active{background:var(--accent);color:#000;}
+.nav-tab:hover:not(.active){color:var(--text);background:var(--surface2);}
+.logout-btn{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:var(--font-head);white-space:nowrap;}
+.logout-btn:hover{color:var(--danger);border-color:var(--danger);}
+
+.page{display:none;padding:16px;max-width:640px;margin:0 auto;}
+.page.active{display:block;}
+.page-bureau{display:none;padding:20px;max-width:1400px;margin:0 auto;}
+.page-bureau.active{display:block;}
+
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:400px;text-align:center;}
+.login-logo{font-family:var(--font-head);font-size:32px;font-weight:800;margin-bottom:4px;}
+.login-logo span{color:var(--accent);}
+.login-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+.login-label{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;text-align:left;}
+.driver-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.driver-btn{padding:14px 10px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-head);font-size:17px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;}
+.driver-btn:hover{border-color:var(--accent);color:var(--accent);}
+.driver-btn.selected{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:var(--font-head);font-size:18px;font-weight:700;letter-spacing:0.5px;margin-bottom:16px;color:var(--accent);text-transform:uppercase;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:15px;outline:none;transition:border-color 0.2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:80px;resize:vertical;}
+.field select option{background:#1f2435;color:#e8ecf4;}
+:root.light .field select option{background:#ffffff;color:#0f172a;}
+
+.active-driver-bar{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.active-driver-name{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--accent);}
+.active-driver-label{font-size:12px;color:var(--muted);}
+
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.check-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all 0.2s;font-size:13px;}
+.check-item:hover{border-color:var(--accent);}
+.check-item.checked{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+.check-dot{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:10px;}
+.check-item.checked .check-dot{background:var(--accent);border-color:var(--accent);color:#000;}
+
+.btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-head);font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#fbbf24;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-success{background:var(--success);color:#000;}
+.btn-blue{background:var(--accent2);color:#fff;}
+.btn-sm{width:auto;padding:6px 14px;font-size:12px;border-radius:6px;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--font-head);letter-spacing:0.5px;text-transform:uppercase;}
+.badge-depose{background:#1e3a5f;color:#60a5fa;}
+.badge-reparation{background:#3a2010;color:#fb923c;}
+.badge-termine{background:#1a2a1a;color:#86efac;}
+.badge-enleve{background:#2a1a3a;color:#c084fc;}
+
+.veh-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;}
+.veh-card:hover{border-color:var(--accent2);}
+.veh-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.veh-plate{font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:2px;}
+.veh-meta{font-size:13px;color:var(--muted);margin-bottom:4px;}
+.veh-meta span{color:var(--text);font-weight:500;}
+.veh-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.veh-tag{background:var(--surface2);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:4px;font-family:var(--font-head);}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
+.filter-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all 0.2s;}
+.filter-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.stat-num{font-family:var(--font-head);font-size:32px;font-weight:800;color:var(--accent);}
+.stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:24px 20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--font-head);font-size:20px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;}
+
+.enl-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+.enl-modal-overlay.open{display:flex;}
+.enl-modal{background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:24px 20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.enl-title{font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--accent);margin-bottom:16px;}
+
+.multi-veh-list{max-height:220px;overflow-y:auto;margin-bottom:12px;}
+.multi-veh-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.2s;}
+.multi-veh-item.selected{border-color:var(--accent);background:#2a2010;}
+.multi-veh-item .mveh-plate{font-family:var(--font-head);font-size:18px;font-weight:800;}
+.multi-veh-item .mveh-info{font-size:12px;color:var(--muted);}
+.multi-check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.2s;}
+.multi-veh-item.selected .multi-check{background:var(--accent);border-color:var(--accent);color:#000;}
+
+.status-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.status-btn{padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-head);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.status-btn:hover{border-color:var(--accent);color:var(--accent);}
+.status-btn.current{border-color:var(--accent);background:#2a2010;color:var(--accent);}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--success);color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-family:var(--font-head);font-size:15px;opacity:0;transition:all 0.3s;z-index:400;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.section-label{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-text{font-family:var(--font-head);font-size:18px;}
+
+/* ── BUREAU DASHBOARD ── */
+.bureau-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+.bureau-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+.bureau-stat-num{font-family:var(--font-head);font-size:38px;font-weight:800;}
+.bureau-stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;}
+.bureau-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.bureau-col{display:flex;flex-direction:column;gap:16px;}
+.bureau-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.bureau-card-title{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.bureau-veh-list{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.bureau-veh-row{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.bureau-veh-plate{font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:1px;}
+.bureau-veh-info{font-size:12px;color:var(--muted);margin-top:2px;}
+.bureau-veh-info span{color:var(--text);}
+.bureau-stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.bureau-stat-row:last-child{border-bottom:none;}
+.bureau-stat-val{font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--accent);}
+.alert-row{background:#2a1a1a;border:1px solid #7f1d1d;border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.alert-plate{font-family:var(--font-head);font-size:18px;font-weight:800;color:#fca5a5;}
+.alert-info{font-size:12px;color:#fca5a5;opacity:0.8;margin-top:2px;}
+.centre-selector{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.centre-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all 0.2s;}
+.centre-btn.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.sub-table{width:100%;border-collapse:collapse;font-size:12px;}
+.sub-table th{color:var(--muted);font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
+.sub-table td{padding:5px 6px;border-bottom:1px solid #1f2435;color:var(--text);}
+.sub-table tr:last-child td{border-bottom:none;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+
+/* ── PIN ── */
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.2s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+.pin-btn{padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.pin-btn:hover{background:var(--accent);color:#000;border-color:var(--accent);}
+.pin-btn:active{transform:scale(0.95);}
+
+/* ── ATELIER ── */
+.atelier-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+@media(max-width:640px){.atelier-layout{grid-template-columns:1fr;}}
+.atelier-col-title{font-family:var(--font-head);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+.atelier-veh{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;}
+.atelier-veh:hover{border-color:#34d399;}
+.atelier-veh.has-dossier{border-color:#059669;background:#0a2018;}
+.atelier-veh-plate{font-family:var(--font-head);font-size:20px;font-weight:800;letter-spacing:1px;}
+.atelier-veh-info{font-size:12px;color:var(--muted);margin-top:3px;}
+.atelier-veh-info span{color:var(--text);}
+.dossier-icon{color:#34d399;font-size:14px;margin-left:6px;}
+
+/* Dossier modal */
+.dossier-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+.dossier-overlay.open{display:flex;}
+.dossier-modal{background:var(--surface);border:2px solid #34d399;border-radius:16px;padding:24px 20px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;}
+.dossier-title{font-family:var(--font-head);font-size:22px;font-weight:800;color:#34d399;margin-bottom:4px;}
+.dossier-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;}
+.photo-thumb:hover{border-color:#34d399;}
+.photo-add-btn{width:100%;aspect-ratio:1;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:11px;gap:4px;transition:all 0.2s;}
+.photo-add-btn:hover{border-color:#34d399;color:#34d399;}
+.photo-add-btn span{font-size:24px;}
+
+/* Photo viewer */
+.photo-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:400;align-items:center;justify-content:center;}
+.photo-viewer.open{display:flex;}
+.photo-viewer img{max-width:95vw;max-height:95vh;border-radius:8px;}
+.photo-viewer-close{position:absolute;top:16px;right:20px;color:#fff;font-size:32px;cursor:pointer;background:none;border:none;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner" style="display:none;background:#ef4444;color:#fff;text-align:center;padding:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;position:sticky;top:56px;z-index:99;">
+  ⚠️ Pas de connexion — les données seront synchronisées dès le retour du réseau
+</div>
+
+<!-- INSTALL GUIDE MODAL -->
+<div id="install-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:24px;width:100%;max-width:420px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--accent);margin-bottom:16px;">📱 Ajouter sur l'écran d'accueil</div>
+    <div style="font-size:14px;line-height:1.8;margin-bottom:8px;"><strong style="color:var(--accent);">iPhone / iPad :</strong><br>
+      1. Ouvre le lien dans <strong>Safari</strong><br>
+      2. Appuie sur le bouton <strong>Partager</strong> (carré avec flèche ↑)<br>
+      3. Sélectionne <strong>"Sur l'écran d'accueil"</strong><br>
+      4. Appuie sur <strong>"Ajouter"</strong>
+    </div>
+    <div style="font-size:14px;line-height:1.8;margin-bottom:16px;"><strong style="color:var(--accent);">Android :</strong><br>
+      1. Ouvre le lien dans <strong>Chrome</strong><br>
+      2. Appuie sur les <strong>3 points</strong> en haut à droite<br>
+      3. Sélectionne <strong>"Ajouter à l'écran d'accueil"</strong><br>
+      4. Appuie sur <strong>"Ajouter"</strong>
+    </div>
+    <button onclick="document.getElementById('install-modal').style.display='none'" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;">✅ COMPRIS</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Midas <span>FleetTrack</span></div>
+    <div class="login-sub">Sélectionne ton nom pour commencer</div>
+    <div class="login-label">Qui es-tu ?</div>
+    <div class="driver-btns" id="driver-btns"></div>
+    <div id="pin-section" style="display:none;margin-bottom:16px;">
+      <div class="login-label" style="margin-top:8px;">Code PIN</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto;">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn" style="opacity:0;pointer-events:none;"></button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn" onclick="pinPress('⌫')">⌫</button>
+      </div>
+      <div id="pin-error" style="color:#ef4444;font-size:13px;margin-top:8px;text-align:center;display:none;">PIN incorrect !</div>
+    </div>
+    <div id="change-pin-section" style="display:none;margin-bottom:12px;">
+      <button onclick="showChangePinModal()" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;cursor:pointer;">🔑 Changer mon PIN</button>
+    </div>
+    <button class="btn btn-primary" id="login-btn" onclick="confirmLogin()">✅ COMMENCER</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Midas <span>FleetTrack</span><small id="nav-driver-name"></small></div>
+  <div class="nav-right">
+    <div class="nav-tabs" id="nav-tabs-container">
+      <button class="nav-tab active" onclick="showPage('encode')">📋 Déposer</button>
+      <button class="nav-tab" onclick="showPage('liste')">🚗 Véhicules</button>
+      <button class="nav-tab" onclick="showPage('dashboard')">📊 Stats</button>
+      <button class="nav-tab" onclick="showPage('archives')">📁 Archives</button>
+      <button class="nav-tab" onclick="showPage('bureau')" style="color:#818cf8;">🖥️ Bureau</button>
+      <button class="nav-tab" onclick="showPage('atelier')" style="color:#34d399;">🔧 Atelier</button>
+    </div>
+    <button onclick="toggleTheme()" id="theme-btn" style="font-size:16px;background:none;border:none;cursor:pointer;padding:4px;">🌙</button>
+    <button class="logout-btn" onclick="document.getElementById('install-modal').style.display='flex'" title="Ajouter sur l'écran d'accueil">📲</button>
+    <button class="logout-btn" onclick="logout()">⇄ Changer</button>
+  </div>
+</nav>
+
+<!-- ENCODER -->
+<div class="page active" id="page-encode">
+  <div class="active-driver-bar">
+    <div><div class="active-driver-label">Connecté</div><div class="active-driver-name" id="encode-driver-name">—</div></div>
+    <span style="font-size:24px;">👤</span>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Nouveau Dépôt</div>
+    <div class="field">
+      <label>Plaque *</label>
+      <input type="text" id="f-plaque" placeholder="1-ABC-123" style="text-transform:uppercase;font-weight:700;font-size:20px;letter-spacing:3px;">
+    </div>
+    <div class="field" id="depanneuse-field" style="display:none;">
+      <div class="check-item" id="depanneuse-check" onclick="toggleDepanneuse()">
+        <div class="check-dot" id="depanneuse-dot"></div>
+        <span>🚛 Déposé en dépanneuse</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Prise en charge chez *</label>
+      <select id="f-entreprise" onchange="onEntrepriseChange()">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="🟢 Europcar">
+          <option value="Charleroi Europcar" data-centre="Rhode">Charleroi</option>
+          <option value="Drogenbos Europcar" data-centre="Rhode">Drogenbos</option>
+          <option value="Gare du Midi Europcar" data-centre="Rhode">Gare du Midi</option>
+          <option value="Distri Europcar" data-centre="Rhode">Distri</option>
+          <option value="Airport Europcar" data-centre="Rhode">Aéroport</option>
+          <option value="Liège Europcar" data-centre="Hannut">Liège</option>
+        </optgroup>
+        <optgroup label="🔴 Bpost">
+          <option value="Kampenhout Bpost" data-centre="Zaventem">Kampenhout</option>
+          <option value="Herent Bpost" data-centre="Zaventem">Herent</option>
+          <option value="Herne Bpost" data-centre="Rhode">Herne</option>
+          <option value="Zaventem Bpost" data-centre="Zaventem">Zaventem</option>
+          <option value="Haacht Bpost" data-centre="Zaventem">Haacht</option>
+          <option value="Rhode Bpost" data-centre="Rhode">Rhode</option>
+          <option value="Huizingen Bpost" data-centre="Rhode">Huizingen</option>
+        </optgroup>
+        <optgroup label="🔵 Autres">
+          <option value="Bravo Auto" data-centre="Zaventem">Bravo Auto</option>
+          <option value="General Lease" data-centre="Zaventem">General Lease</option>
+          <option value="Spoticar" data-centre="Rhode">Spoticar</option>
+          <option value="Stellantis" data-centre="Rhode">Stellantis</option>
+          <option value="Cambio" data-centre="Rhode">Cambio</option>
+          <option value="ALD-Axus-Ayvens" data-centre="multi">ALD-Axus-Ayvens</option>
+          <option value="Efkon" data-centre="Zaventem">Efkon</option>
+          <option value="Arval" data-centre="Zaventem">Arval (Auto 5)</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field" id="km-field" style="display:none;">
+      <label>Kilométrage * <span style="color:var(--accent);font-size:11px;">(obligatoire Bpost)</span></label>
+      <input type="number" id="f-km" placeholder="Ex: 87500" min="0" style="font-size:18px;font-weight:700;">
+    </div>
+    <div class="field">
+      <label>Déposé au centre</label>
+      <div id="centre-display" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--muted);">— sélectionne d'abord le client —</div>
+      <input type="hidden" id="f-centre">
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Travaux à réaliser</div>
+    <div class="check-grid" id="travaux-grid"></div>
+    <div class="field" style="margin-top:14px;">
+      <label>Remarques</label>
+      <textarea id="f-remarques" placeholder="Autres travaux, observations..."></textarea>
+    </div>
+    <div class="field">
+      <label>Photos du véhicule <span style="color:var(--muted);font-size:11px;">(max 5)</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div onclick="document.getElementById('enc-photo-cam').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:26px;">📷</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Prendre photo</div>
+        </div>
+        <div onclick="document.getElementById('enc-photo-alb').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:26px;">🖼️</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Depuis album</div>
+        </div>
+      </div>
+      <input type="file" id="enc-photo-cam" accept="image/*" capture="environment" onchange="handleEncodePhoto(event)" style="display:none;">
+      <input type="file" id="enc-photo-alb" accept="image/*" onchange="handleEncodePhoto(event)" style="display:none;">
+      <div id="enc-photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;"></div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:8px;" onclick="submitVehicle()">✅ ENREGISTRER</button>
+  </div>
+</div>
+
+<!-- LISTE -->
+<div class="page" id="page-liste">
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-blue" style="font-size:13px;padding:10px;" onclick="openMultiEnlModal()">🚗 Enlèvement multiple</button>
+    <button onclick="refreshData()" style="flex-shrink:0;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--font-head);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄</button>
+  </div>
+  <!-- Centre tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;" id="centre-tabs">
+    <button class="filter-btn active" style="border-color:var(--accent);color:var(--accent);" onclick="setCentreTab('tous',this)">Tous les centres</button>
+    <button class="filter-btn" onclick="setCentreTab('Zaventem',this)">🏭 Zaventem</button>
+    <button class="filter-btn" onclick="setCentreTab('Rhode',this)">🏭 Rhode</button>
+    <button class="filter-btn" onclick="setCentreTab('Hannut',this)">🏭 Hannut</button>
+  </div>
+  <!-- Status filters -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterVehicles('tous',this)">Tous</button>
+    <button class="filter-btn" onclick="filterVehicles('Déposé garage',this)">🏭 Déposé</button>
+    <button class="filter-btn" onclick="filterVehicles('Bon demandé / En réparation',this)">🔧 Réparation</button>
+    <button class="filter-btn" onclick="filterVehicles('Terminé',this)">✅ Terminé</button>
+  </div>
+  <div style="margin-bottom:12px;">
+    <input type="text" id="search-input" placeholder="🔍  Rechercher plaque, client..."
+      style="width:100%;background:#1f2435;border:1px solid #2a3045;border-radius:8px;padding:10px 14px;color:#e8ecf4;font-family:'Barlow',sans-serif;font-size:14px;outline:none;" oninput="renderList()">
+  </div>
+  <div id="vehicle-list"></div>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-dashboard">
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Par centre</span>
+      <button onclick="resetMensuel()" style="font-family:'Barlow Condensed';font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;">🔄 RAZ mensuelle</button>
+    </div>
+    <div id="stats-centre"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Par client</div>
+    <div id="stats-entreprise"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Types de réparation ce mois</div>
+    <div id="stats-travaux"></div>
+  </div>
+</div>
+
+<!-- ARCHIVES -->
+<div class="page" id="page-archives">
+  <div style="margin-bottom:12px;">
+    <input type="text" id="archive-search" placeholder="🔍  Rechercher plaque, client, chauffeur..."
+      style="width:100%;background:#1f2435;border:1px solid #2a3045;border-radius:8px;padding:10px 14px;color:#e8ecf4;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+      oninput="renderArchives()">
+  </div>
+  <div class="filter-bar" id="archive-filter-bar">
+    <button class="filter-btn active" onclick="filterArchives('tous',this)">Tous</button>
+    <button class="filter-btn" onclick="filterArchives('Zaventem',this)">Zaventem</button>
+    <button class="filter-btn" onclick="filterArchives('Rhode',this)">Rhode</button>
+    <button class="filter-btn" onclick="filterArchives('Hannut',this)">Hannut</button>
+  </div>
+  <div class="card" style="border-color:#3730a3;">
+    <div class="card-title" style="color:#818cf8;">📁 Véhicules Enlevés</div>
+    <div id="archive-list"></div>
+  </div>
+</div>
+
+<!-- BUREAU -->
+<div class="page-bureau" id="page-bureau">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div style="font-family:var(--font-head);font-size:26px;font-weight:800;">🖥️ Dashboard <span style="color:var(--accent);">Bureau</span></div>
+    <div class="centre-selector">
+      <button class="centre-btn active" onclick="setBureauCentre('tous',this)">Tous les centres</button>
+      <button class="centre-btn" onclick="setBureauCentre('Zaventem',this)">Zaventem</button>
+      <button class="centre-btn" onclick="setBureauCentre('Rhode',this)">Rhode</button>
+      <button class="centre-btn" onclick="setBureauCentre('Hannut',this)">Hannut</button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="bureau-grid" id="bureau-kpi"></div>
+
+  <!-- Main layout -->
+  <div class="bureau-layout">
+    <!-- LEFT COL -->
+    <div class="bureau-col">
+      <div class="bureau-card">
+        <div class="bureau-card-title">🚗 Véhicules en centre</div>
+        <div class="bureau-veh-list" id="bureau-veh-list"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">⚠️ Dépassement 5 jours</div>
+        <div id="bureau-alerts"></div>
+      </div>
+    </div>
+    <!-- RIGHT COL -->
+    <div class="bureau-col">
+      <div class="bureau-card">
+        <div class="bureau-card-title">📦 Véhicules par client (mois)</div>
+        <div id="bureau-by-client"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">⏱️ Immobilisation moyenne par client</div>
+        <div id="bureau-immo-client"></div>
+      </div>
+      <div class="bureau-card">
+        <div class="bureau-card-title">🔧 Immobilisation par type de travail</div>
+        <div id="bureau-immo-travail"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ATELIER -->
+<div class="page" id="page-atelier">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:#34d399;">🔧 Atelier</div>
+    <div class="centre-selector" id="atelier-centre-selector">
+      <button class="centre-btn active" onclick="setAtelierCentre('Zaventem',this)">Zaventem</button>
+      <button class="centre-btn" onclick="setAtelierCentre('Rhode',this)">Rhode</button>
+      <button class="centre-btn" onclick="setAtelierCentre('Hannut',this)">Hannut</button>
+    </div>
+  </div>
+  <div class="atelier-layout">
+    <div>
+      <div class="atelier-col-title" style="color:var(--muted);">📋 Sans dossier</div>
+      <div id="atelier-sans-dossier"></div>
+    </div>
+    <div>
+      <div class="atelier-col-title" style="color:#34d399;">📁 Dossier constitué</div>
+      <div id="atelier-avec-dossier"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DOSSIER MODAL -->
+<div class="dossier-overlay" id="dossier-modal">
+  <div class="dossier-modal">
+    <div class="dossier-title" id="dossier-plate">—</div>
+    <div class="dossier-sub" id="dossier-info"></div>
+    <div class="field">
+      <label>Notes techniques</label>
+      <textarea id="dossier-note" placeholder="Décris les travaux, observations, pièces nécessaires..." style="min-height:120px;"></textarea>
+    </div>
+    <div class="field">
+      <label>Photos</label>
+      <div class="photo-grid" id="dossier-photo-grid">
+        <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-cam').click()"><span>📷</span>Photo</div>
+        <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-alb').click()"><span>🖼️</span>Album</div>
+      </div>
+      <input type="file" id="dossier-photo-cam" accept="image/*" capture="environment" onchange="addDossierPhoto(event)" style="display:none;">
+      <input type="file" id="dossier-photo-alb" accept="image/*" onchange="addDossierPhoto(event)" style="display:none;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeDossierModal()">Annuler</button>
+      <button class="btn" style="background:#059669;color:#fff;" onclick="saveDossier()">💾 ENREGISTRER</button>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-danger" id="dossier-delete-btn" onclick="deleteDossier()" style="display:none;font-size:13px;">🗑 Supprimer le dossier</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div class="photo-viewer" id="photo-viewer" onclick="closePhotoViewer()">
+  <button class="photo-viewer-close" onclick="closePhotoViewer()">✕</button>
+  <img id="photo-viewer-img" src="" alt="">
+</div>
+
+<!-- RAPPORTS OMAR -->
+<div class="page" id="page-rapports" style="max-width:900px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div style="font-family:var(--font-head);font-size:26px;font-weight:800;">📈 Rapports <span style="color:var(--accent);">Mensuels</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="rapports-year-select" onchange="selectedYear=parseInt(this.value);renderRapports()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font-head);font-size:14px;font-weight:600;outline:none;cursor:pointer;"></select>
+      <button onclick="exportMonthPDF()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📄 PDF mois</button>
+      <button onclick="exportYearExcel()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📊 Excel année</button>
+    </div>
+  </div>
+  <!-- Month tabs -->
+  <div style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;" id="month-tabs"></div>
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="rapports-kpi"></div>
+  <!-- Charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Véhicules reçus vs terminés</div>
+      <canvas id="chart-recus-termines" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Répartition par centre</div>
+      <canvas id="chart-par-centre" height="200"></canvas>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Top clients</div>
+      <canvas id="chart-clients" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Immobilisation moyenne (jours)</div>
+      <canvas id="chart-immo" height="200"></canvas>
+    </div>
+  </div>
+  <!-- Detail tables -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Par centre</div>
+      <div id="rapports-centres"></div>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Types de travaux</div>
+      <div id="rapports-travaux"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BON TRAVAUX -->
+<div class="enl-modal-overlay" id="bon-modal">
+  <div class="enl-modal">
+    <div class="enl-title">📋 Travaux du bon</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Coche les travaux réellement demandés/facturés</div>
+    <div class="check-grid" id="bon-travaux-grid" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Remarque bon (optionnel)</label>
+      <input type="text" id="bon-remarque" placeholder="Ex: 2 pneus remplacés, sous garantie...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+      <button class="btn btn-ghost" onclick="closeBonModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmBon()">✅ Confirmer le bon</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARKING -->
+<div class="enl-modal-overlay" id="parking-modal">
+  <div class="enl-modal">
+    <div class="enl-title">✅ Véhicule terminé</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Emplacement du véhicule (optionnel)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="parking-grid">
+      <div class="check-item" onclick="toggleParking(this,'Jardin')"><div class="check-dot"></div><span>🌳 Jardin</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Pompiers')"><div class="check-dot"></div><span>🚒 Pompiers</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Rue')"><div class="check-dot"></div><span>🛣️ Rue</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Chée de Louv')"><div class="check-dot"></div><span>📍 Chée de Louv</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Q8')"><div class="check-dot"></div><span>⛽ Q8</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Autre')"><div class="check-dot"></div><span>📌 Autre</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn btn-ghost" onclick="confirmParking(true)">⏭️ Passer</button>
+      <button class="btn btn-success" onclick="confirmParking(false)">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-plate">—</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- MODAL ENLÈVEMENT SIMPLE -->
+<div class="enl-modal-overlay" id="enl-modal">
+  <div class="enl-modal">
+    <div class="enl-title">🚗 Enlèvement</div>
+    <div class="field">
+      <label>Qui enlève ?</label>
+      <select id="enl-qui">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
+        <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
+      </select>
+    </div>
+    <div class="field">
+      <label>Destination</label>
+      <select id="enl-dest" onchange="toggleAutre()">
+        <option value="">— Sélectionner —</option>
+        <option id="enl-dest-origine" value="origine">Lieu d'origine</option>
+        <option value="Transfert concessionnaire">Transfert concessionnaire</option>
+        <option value="Carrosserie">Carrosserie</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="field" id="enl-autre-field" style="display:none;">
+      <label>Préciser</label>
+      <input type="text" id="enl-autre-input" placeholder="Adresse ou lieu...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeEnlModal()">Annuler</button>
+      <button class="btn btn-success" onclick="confirmEnlevement()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENLÈVEMENT MULTIPLE -->
+<div class="enl-modal-overlay" id="multi-enl-modal">
+  <div class="enl-modal">
+    <div class="enl-title">🚗 Enlèvement multiple</div>
+    <div class="section-label">Sélectionne les véhicules</div>
+    <div class="multi-veh-list" id="multi-veh-list"></div>
+    <div class="field">
+      <label>Qui enlève ?</label>
+      <select id="multi-enl-qui">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="Chauffeurs équipe"><option>Said</option><option>Yassin</option><option>Joachim</option><option>Kevin</option><option>Viktor</option></optgroup>
+        <optgroup label="Chauffeur client"><option>Chauffeur Europcar</option><option>Chauffeur General Lease</option><option>Autre</option></optgroup>
+        <optgroup label="Transport"><option>Dépanneuse</option></optgroup>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeMultiEnlModal()">Annuler</button>
+      <button class="btn btn-success" onclick="confirmMultiEnlevement()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CHAUFFEURS=['Said','Yassin','Joachim','Kevin','Viktor','Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const BUREAU=['Midas Rhode','Midas Zaventem','Auto 5','Omar'];
+const PROFILE_TABS = {
+  'Said':           ['encode','liste','dashboard'],
+  'Yassin':         ['encode','liste','dashboard'],
+  'Joachim':        ['encode','liste','dashboard'],
+  'Kevin':          ['encode','liste','dashboard'],
+  'Viktor':         ['encode','liste','dashboard'],
+  'Midas Zaventem': ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Midas Rhode':    ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Auto 5':         ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Omar':           ['encode','liste','dashboard','archives','bureau','atelier','rapports'],
+};
+const TAB_LABELS = {
+  'encode':    ['📋 Déposer',   "showPage('encode')"],
+  'liste':     ['🚗 Véhicules', "showPage('liste')"],
+  'dashboard': ['📊 Stats',     "showPage('dashboard')"],
+  'archives':  ['📁 Archives',  "showPage('archives')"],
+  'bureau':    ["🖥️ Bureau",    "showPage('bureau')"],
+  'atelier':   ['🔧 Atelier',   "showPage('atelier')"],
+  'rapports':  ['📈 Rapports',  "showPage('rapports')"],
+};
+const CENTRES=['Zaventem','Rhode','Hannut'];
+const BON_TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.','Rétroviseur G','Rétroviseur D','Plage arrière','MO réparation','MO remplacement','Autre'];
+const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.','Rétroviseur G','Rétroviseur D'];
+const STATUS_LIST=['Déposé garage','Bon demandé / En réparation','Terminé'];
+const STATUS_CLASS={'Déposé garage':'badge-depose','Bon demandé / En réparation':'badge-reparation','Terminé':'badge-termine','Enlevé':'badge-enleve'};
+
+let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotos=[];
+
+// ── HELPERS ──
+// Belgian public holidays (fixed dates, MM-DD format)
+const BE_HOLIDAYS_FIXED = ['01-01','05-01','07-21','08-15','11-01','11-11','12-25'];
+
+function isWorkday(date){
+  const d = new Date(date);
+  const dow = d.getDay();
+  if(dow===0||dow===6) return false; // weekend
+  const mmdd = String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(BE_HOLIDAYS_FIXED.includes(mmdd)) return false;
+  // Easter-based holidays (approximate for 2025-2027)
+  const year = d.getFullYear();
+  // Easter Sunday calculation (Gauss algorithm)
+  const a=year%19,b=Math.floor(year/100),c=year%100;
+  const d2=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d2-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  const easter = new Date(year,month-1,day);
+  const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate()+1);
+  const ascension = new Date(easter); ascension.setDate(easter.getDate()+39);
+  const whitMonday = new Date(easter); whitMonday.setDate(easter.getDate()+50);
+  const moveable = [easterMonday,ascension,whitMonday].map(x=>
+    String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')
+  );
+  if(moveable.includes(mmdd)) return false;
+  return true;
+}
+
+function workdaysSince(ts){
+  let count=0;
+  const start=new Date(ts);
+  const end=new Date();
+  const cur=new Date(start);
+  cur.setDate(cur.getDate()+1); // start counting from next day
+  while(cur<=end){
+    if(isWorkday(cur)) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+
+function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
+function daysBetween(ts1,ts2){ return Math.round(Math.abs(ts2-ts1)/86400000); }
+function activeVeh(){ return vehicles.filter(v=>v.status!=='Enlevé'); }
+function archivedVeh(){ return vehicles.filter(v=>v.status==='Enlevé'); }
+// Normalize client name for grouping (all Europcar = "Europcar", all Bpost = "Bpost")
+function clientGroup(name){
+  if(!name) return name;
+  if(name.toLowerCase().includes('europcar')) return 'Europcar';
+  if(name.toLowerCase().includes('bpost')) return 'Bpost';
+  return name;
+}
+
+// ── LOGIN ──
+let currentPin='';
+let loginPins={};
+
+async function loadPins(){
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/pins?select=nom,pin`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`}
+    });
+    const rows=await res.json();
+    if(Array.isArray(rows)) rows.forEach(r=>{ loginPins[r.nom]=r.pin; });
+  }catch(e){ console.warn('Pin load error:',e); }
+}
+
+function initLogin(){
+  const saved=localStorage.getItem('midas_driver');
+  if(saved){currentDriverName=saved;hideLogin();return;}
+  const btns=document.getElementById('driver-btns'); btns.innerHTML='';
+  CHAUFFEURS.forEach(name=>{
+    const b=document.createElement('button'); b.className='driver-btn'; b.textContent=name;
+    b.onclick=()=>{
+      document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+      currentPin='';
+      updatePinDots();
+      document.getElementById('pin-section').style.display='block';
+      document.getElementById('pin-error').style.display='none';
+      document.getElementById('login-btn').style.display='none';
+    };
+    btns.appendChild(b);
+  });
+}
+
+function pinPress(val){
+  if(val==='⌫'){ currentPin=currentPin.slice(0,-1); }
+  else if(val===''){ return; }
+  else if(currentPin.length<4){ currentPin+=val; }
+  updatePinDots();
+  if(currentPin.length===4) setTimeout(checkPin,150);
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot) dot.className='pin-dot'+(i<currentPin.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  const sel=document.querySelector('.driver-btn.selected');
+  if(!sel) return;
+  const name=sel.textContent;
+  const expected=loginPins[name]||'1234';
+  if(currentPin===expected){
+    currentDriverName=name;
+    localStorage.setItem('midas_driver',name);
+    hideLogin();
+  } else {
+    document.getElementById('pin-error').style.display='block';
+    currentPin='';
+    updatePinDots();
+    setTimeout(()=>{ document.getElementById('pin-error').style.display='none'; },1500);
+  }
+}
+
+function confirmLogin(){
+  const sel=document.querySelector('.driver-btn.selected');
+  if(!sel){showToast('⚠️ Sélectionne ton nom','#ef4444');return;}
+  if(currentPin.length<4){showToast('⚠️ Entre ton PIN','#ef4444');return;}
+  checkPin();
+}
+
+// Change PIN
+function showChangePinModal(){
+  const newPin=prompt('Entre ton nouveau PIN (4 chiffres):');
+  if(!newPin||!/^\d{4}$/.test(newPin)){showToast('⚠️ PIN invalide (4 chiffres)','#ef4444');return;}
+  changePin(currentDriverName,newPin);
+}
+
+async function changePin(name,newPin){
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/pins?nom=eq.${encodeURIComponent(name)}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Prefer':'return=minimal'},
+      body:JSON.stringify({pin:newPin})
+    });
+    loginPins[name]=newPin;
+    showToast('✅ PIN modifié !');
+  }catch(e){ showToast('⚠️ Erreur modification PIN','#ef4444'); }
+}
+function hideLogin(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('nav-driver-name').textContent=currentDriverName;
+  document.getElementById('encode-driver-name').textContent=currentDriverName;
+  document.getElementById('depanneuse-field').style.display=BUREAU.includes(currentDriverName)?'block':'none';
+  document.getElementById('change-pin-section').style.display='block';
+  // Build dynamic nav tabs based on profile
+  const tabs=PROFILE_TABS[currentDriverName]||['encode','liste','dashboard'];
+  const navTabs=document.getElementById('nav-tabs-container');
+  navTabs.innerHTML=tabs.map(t=>`<button class="nav-tab" onclick="${TAB_LABELS[t][1]}">${TAB_LABELS[t][0]}</button>`).join('');
+  // Request notification permission
+  if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission();
+  }
+  // Redirect based on profile
+  if(currentDriverName==='Omar'){
+    showPage('dashboard');
+  } else if(BUREAU.includes(currentDriverName)){
+    // Set default centre filter based on login
+    if(currentDriverName==='Midas Zaventem') { bureauCentre='Zaventem'; setDefaultCentreFilter('Zaventem'); }
+    else if(currentDriverName==='Midas Rhode') { bureauCentre='Rhode'; setDefaultCentreFilter('Rhode'); }
+    else if(currentDriverName==='Auto 5') { bureauCentre='Zaventem'; setDefaultCentreFilter('Zaventem'); }
+    showPage('liste');
+  }
+}
+
+function setDefaultCentreFilter(centre){
+  currentCentreTab = centre;
+  // Update centre tab buttons after DOM is ready
+  setTimeout(()=>{
+    const tabs = document.querySelectorAll('#centre-tabs .filter-btn');
+    tabs.forEach(b=>b.classList.remove('active'));
+    const centreNames = ['tous','Zaventem','Rhode','Hannut'];
+    const idx = centreNames.indexOf(centre);
+    if(idx>=0 && tabs[idx]) tabs[idx].classList.add('active');
+  }, 100);
+}
+function logout(){ localStorage.removeItem('midas_driver'); currentDriverName=null; document.getElementById('login-screen').style.display='flex'; document.querySelectorAll('.driver-btn').forEach(x=>x.classList.remove('selected')); }
+
+// ── TRAVAUX CHECKBOXES ──
+const grid=document.getElementById('travaux-grid');
+TRAVAUX.forEach(t=>{
+  const d=document.createElement('div'); d.className='check-item'; d.dataset.travail=t;
+  d.innerHTML=`<div class="check-dot"></div><span>${t}</span>`;
+  d.onclick=()=>{d.classList.toggle('checked');d.querySelector('.check-dot').textContent=d.classList.contains('checked')?'✓':'';};
+  grid.appendChild(d);
+});
+function handleEncodePhoto(e){
+  const file=e.target.files[0]; if(!file) return;
+  if(encodePhotos.length>=5){showToast('⚠️ Maximum 5 photos','#ef4444');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const tmpImg=new Image();
+    tmpImg.onload=function(){
+      const canvas=document.createElement('canvas');
+      const MAX=800; let w=tmpImg.width,h=tmpImg.height;
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(tmpImg,0,0,w,h);
+      encodePhotos.push(canvas.toDataURL('image/jpeg',0.7));
+      renderEncodePhotos();
+    };
+    tmpImg.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+function renderEncodePhotos(){
+  const grid=document.getElementById('enc-photos-grid');
+  if(!grid) return;
+  grid.innerHTML=encodePhotos.map((p,i)=>`
+    <div style="position:relative;">
+      <img src="${p}" onclick="openPhotoViewer('${p}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+      <button onclick="removeEncodePhoto(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;">✕</button>
+    </div>`).join('');
+}
+
+function removeEncodePhoto(idx){
+  encodePhotos.splice(idx,1);
+  renderEncodePhotos();
+}
+
+function sendPushNotification(title, body){
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification(title, { body, icon: '🚗', badge: '🔔' });
+  }
+}
+
+function toggleDepanneuse(){ const el=document.getElementById('depanneuse-check'),dot=document.getElementById('depanneuse-dot'); el.classList.toggle('checked'); dot.textContent=el.classList.contains('checked')?'✓':''; }
+function getCheckedTravaux(){ return[...document.querySelectorAll('.check-item.checked')].map(el=>el.dataset.travail); }
+
+// ── ENTREPRISE → CENTRE ──
+function onEntrepriseChange(){
+  const sel=document.getElementById('f-entreprise');
+  const opt=sel.options[sel.selectedIndex];
+  const centre=opt?opt.getAttribute('data-centre'):'';
+  const display=document.getElementById('centre-display');
+  const hidden=document.getElementById('f-centre');
+  const val=sel.value;
+  if(val==='Distri Europcar'||val==='Airport Europcar'||val==='ALD-Axus-Ayvens'){
+    display.innerHTML=`<select onchange="document.getElementById('f-centre').value=this.value" style="background:transparent;border:none;color:var(--text);font-size:15px;font-weight:600;outline:none;width:100%;"><option value="">— Choisir centre —</option><option value="Rhode">Rhode</option><option value="Zaventem">Zaventem</option><option value="Hannut">Hannut</option></select>`;
+    hidden.value='';
+  } else if(centre){
+    display.textContent='🏭 Centre '+centre; display.style.color='var(--accent)'; hidden.value=centre;
+  } else {
+    display.textContent="— sélectionne d'abord le client —"; display.style.color='var(--muted)'; hidden.value='';
+  }
+  const isBpost=val.toLowerCase().includes('bpost');
+  document.getElementById('km-field').style.display=isBpost?'block':'none';
+  if(!isBpost) document.getElementById('f-km').value='';
+}
+
+// ── SUBMIT ──
+function submitVehicle(){
+  const plaque=document.getElementById('f-plaque').value.trim().toUpperCase();
+  const entreprise=document.getElementById('f-entreprise').value;
+  const centre=document.getElementById('f-centre').value;
+  const remarques=document.getElementById('f-remarques').value.trim();
+  const travaux=getCheckedTravaux();
+  const kmVal=document.getElementById('f-km').value.trim();
+  const isBpost=entreprise.toLowerCase().includes('bpost');
+  if(!plaque||!entreprise||!centre){showToast('⚠️ Remplis tous les champs obligatoires','#ef4444');return;}
+  if(isBpost&&!kmVal){showToast('⚠️ Kilométrage obligatoire pour Bpost !','#ef4444');return;}
+  const depanneuse=document.getElementById('depanneuse-check').classList.contains('checked');
+  vehicles.unshift({id:Date.now(),plaque,chauffeur:currentDriverName,depanneuse,entreprise,centre,remarques,travaux,km:kmVal?parseInt(kmVal):null,photos:encodePhotos.length>0?[...encodePhotos]:null,status:'Déposé garage',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now(),enlevement:null});
+  save();
+  const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
+  monthly[centre]=(monthly[centre]||0)+1;
+  localStorage.setItem('midas_monthly',JSON.stringify(monthly));
+  resetForm(); showToast('✅ Véhicule enregistré !');
+  // Push notification to bureau
+  sendPushNotification(`🚗 Nouveau véhicule : ${plaque}`, `${entreprise} → Centre ${centre} · ${chauffeur}`);
+}
+function resetForm(){
+  ['f-plaque','f-remarques'].forEach(id=>document.getElementById(id).value='');
+  ['f-entreprise','f-centre','f-km'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('km-field').style.display='none';
+  const disp=document.getElementById('centre-display'); disp.textContent="— sélectionne d'abord le client —"; disp.style.color='var(--muted)';
+  const dc=document.getElementById('depanneuse-check'); dc.classList.remove('checked'); document.getElementById('depanneuse-dot').textContent='';
+  encodePhotos=[]; renderEncodePhotos();
+  document.querySelectorAll('.check-item.checked').forEach(el=>{el.classList.remove('checked');el.querySelector('.check-dot').textContent='';});
+}
+
+// ── SUPABASE CONFIG ──
+const SUPA_URL = 'https://kshgenauujqlfjammwvi.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzaGdlbmF1dWpxbGZqYW1td3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNjUzNTgsImV4cCI6MjA5MzY0MTM1OH0.EbHz_HCriDJ-8uYVKk2kHeBQes5ybBEql7Z_QS1CcT4';
+const ROW_ID = 1;
+
+async function save(){
+  try {
+    const payload = JSON.stringify(vehicles);
+    const res = await fetch(`${SUPA_URL}/rest/v1/fleet_data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() })
+    });
+    try{ localStorage.setItem('fleettrack_v4', payload); }catch(e){}
+    if(!res.ok){ const txt = await res.text(); console.warn('Save failed:', res.status, txt); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
+  } catch(e){ console.warn('Save error:', e); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
+}
+
+async function loadVehicles(){
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/fleet_data?id=eq.${ROW_ID}&select=data`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    const rows = await res.json();
+    if(rows && rows.length > 0 && rows[0].data) {
+      return JSON.parse(rows[0].data);
+    }
+    // Fallback to localStorage if Supabase empty
+    return JSON.parse(localStorage.getItem('fleettrack_v4')||'[]');
+  } catch(e) {
+    console.warn('Load error:', e);
+    return JSON.parse(localStorage.getItem('fleettrack_v4')||'[]');
+  }
+}
+
+// ── PAGES ──
+function showPage(id){
+  document.querySelectorAll('.page,.page-bureau').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById('page-'+id); if(el) el.classList.add('active');
+  // Mark active tab dynamically
+  document.querySelectorAll('#nav-tabs-container .nav-tab').forEach(t=>{
+    if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
+  });
+  if(id==='liste') renderList();
+  if(id==='dashboard') renderDashboard();
+  if(id==='archives') renderArchives();
+  if(id==='bureau') renderBureau();
+  if(id==='atelier') renderAtelier();
+  if(id==='rapports') renderRapports();
+}
+let currentCentreTab='tous';
+function setCentreTab(c,btn){
+  currentCentreTab=c;
+  document.querySelectorAll('#centre-tabs .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+function filterVehicles(f,btn){ currentFilter=f; document.querySelectorAll('.filter-bar .filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderList(); }
+
+// ── VEHICLE CARD HTML ──
+function vehCardHtml(v,archived=false){
+  const isTermine = v.status==='Terminé';
+  const parkingVal = isTermine ? (v.parking||'Inconnu') : null;
+  const parkingColor = v.parking ? '#86efac' : '#6b7694';
+  return `<div class="veh-card" onclick="openModal(${v.id})" style="${archived?'border-color:#3730a3;':''}">
+    <div style="display:flex;gap:10px;align-items:stretch;">
+      <div style="flex:1;min-width:0;">
+        <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span></div>
+        <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
+        <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
+        ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+        ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
+        ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
+        ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
+        ${v.bonTravaux&&v.bonTravaux.length>0?`<div class="veh-tags" style="margin-top:3px;">${v.bonTravaux.map(t=>`<span class="veh-tag" style="background:#0a1628;color:#60a5fa;">📋 ${t}</span>`).join('')}</div>`:''}
+        ${v.photos&&v.photos.length>0?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">${v.photos.length} photo${v.photos.length>1?'s':''}</span></div>`:''}
+        ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
+      </div>
+      ${parkingVal?`
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border:1px solid ${parkingColor}55;border-radius:8px;padding:8px 10px;min-width:68px;text-align:center;">
+        <div style="font-size:10px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Garé</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:${parkingColor};line-height:1.2;">${parkingVal}</div>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderList(){
+  const search=(document.getElementById('search-input').value||'').toLowerCase();
+  let list=activeVeh();
+  // Filter by centre tab
+  if(currentCentreTab!=='tous') list=list.filter(v=>v.centre===currentCentreTab);
+  // Filter by status
+  if(currentFilter!=='tous') list=list.filter(v=>v.status===currentFilter);
+  // Search
+  if(search) list=list.filter(v=>v.plaque.toLowerCase().includes(search)||v.entreprise.toLowerCase().includes(search)||(v.chauffeur||'').toLowerCase().includes(search));
+  // Sort by most recent first
+  list.sort((a,b)=>b.timestamp-a.timestamp);
+  document.getElementById('vehicle-list').innerHTML=list.length===0?`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Aucun véhicule</div></div>`:list.map(v=>vehCardHtml(v)).join('');
+}
+
+let archiveCentreFilter='tous';
+function filterArchives(c,btn){
+  archiveCentreFilter=c;
+  document.querySelectorAll('#archive-filter-bar .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderArchives();
+}
+function renderArchives(){
+  const searchEl=document.getElementById('archive-search');
+  const search=searchEl?(searchEl.value||'').toLowerCase():'';
+  let list=archivedVeh();
+  if(archiveCentreFilter!=='tous') list=list.filter(v=>v.centre===archiveCentreFilter);
+  if(search) list=list.filter(v=>v.plaque.toLowerCase().includes(search)||v.entreprise.toLowerCase().includes(search)||(v.chauffeur||'').toLowerCase().includes(search));
+  list.sort((a,b)=>b.timestamp-a.timestamp);
+  document.getElementById('archive-list').innerHTML=list.length===0
+    ?`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Aucun véhicule archivé</div></div>`
+    :list.map(v=>{
+      const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
+      return `<div class="veh-card" onclick="openModal(${v.id})" style="border-color:#3730a3;">
+        <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge badge-enleve">Enlevé</span></div>
+        <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
+        <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
+        ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.parking?`<div class="veh-meta">📍 <span style="color:#86efac;font-weight:600;">${v.parking}</span></div>`:''}
+        ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
+        ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
+        ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}
+      </div>`;
+    }).join('');
+}
+
+// ── MODAL ──
+function openModal(id){
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  document.getElementById('modal-plate').textContent=v.plaque;
+  const isEnleve=v.status==='Enlevé';
+  const statusBtns=STATUS_LIST.map(s=>{
+    if(s==='Bon demandé / En réparation'){
+      return `<button class="status-btn ${v.status===s?'current':''}" onclick="closeModal();openBonModal(${id})">${s}</button>`;
+    }
+    if(s==='Terminé'){
+      return `<button class="status-btn ${v.status===s?'current':''}" onclick="closeModal();openParkingModal(${id})">${s}</button>`;
+    }
+    return `<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`;
+  }).join('');
+  const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
+  document.getElementById('modal-body').innerHTML=`
+    <div style="margin-bottom:12px;"><span class="badge ${STATUS_CLASS[v.status]}" style="font-size:13px;padding:5px 14px;">${v.status}</span></div>
+    ${v.photos&&v.photos.length>0?`<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;'>${v.photos.map(p=>`<img src='${p}' onclick='openPhotoViewer("${p}")' style='width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;'/>`).join('')}</div>`:''}
+    <div class="veh-meta" style="margin-bottom:8px;">🏢 <span style="color:#e8ecf4;font-weight:500;">${v.entreprise}</span></div>
+    <div class="veh-meta" style="margin-bottom:8px;">🏭 Centre : <span style="color:#e8ecf4;">${v.centre}</span></div>
+    <div class="veh-meta" style="margin-bottom:8px;">👤 <span style="color:#e8ecf4;">${v.chauffeur}</span></div>
+    ${v.km?`<div class="veh-meta" style="margin-bottom:8px;">🔢 <span style="color:var(--accent);font-weight:700;">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.parking?`<div class="veh-meta" style="margin-bottom:8px;">📍 Emplacement : <span style="color:#86efac;font-weight:600;">${v.parking}</span></div>`:''}
+    ${v.depanneuse?`<div class="veh-meta" style="margin-bottom:8px;">🚛 <span style="color:#38bdf8;">Arrivée en dépanneuse</span></div>`:''}
+    <div class="veh-meta" style="margin-bottom:12px;">🕐 ${v.date}</div>
+    ${v.bonTravaux&&v.bonTravaux.length>0?`
+      <div style="background:#0a1628;border:2px solid #3b82f6;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📋 Bon demandé pour :</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${v.bonTravaux.map(t=>`<span style="background:#3b82f6;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;padding:4px 12px;border-radius:6px;">${t}</span>`).join('')}</div>
+        ${v.bonRemarque?`<div style="font-size:12px;color:#93c5fd;margin-top:8px;">💬 ${v.bonRemarque}</div>`:''}
+      </div>
+    `:''}
+    ${v.travaux&&v.travaux.length>0?`
+      <div style="border:1px solid #2a3045;border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🔍 Constaté à la prise en charge</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">${v.travaux.map(t=>`<span style="background:var(--surface2);color:#f59e0b;font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #2a2010;">${t}</span>`).join('')}</div>
+      </div>
+    `:''}
+    ${v.remarques?`<div class="veh-meta" style="margin-bottom:12px;">💬 ${v.remarques}</div>`:''}
+    ${v.dossier?`<div class="divider"></div><div class="section-label" style="color:#34d399;">📁 Dossier Atelier</div><div class="veh-meta" style="margin-bottom:8px;white-space:pre-wrap;">${v.dossier.note||'—'}</div>${v.dossier.photos&&v.dossier.photos.length>0?`<div class="photo-grid" style="margin-top:8px;">${v.dossier.photos.map(p=>`<img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>`).join('')}</div>`:''}`:''}
+    ${v.enlevement?`<div class="divider"></div><div class="section-label">Enlèvement</div>
+      <div class="veh-meta">🚗 Par : <span style="color:#e8ecf4;">${v.enlevement.qui}</span></div>
+      <div class="veh-meta">📍 Destination : <span style="color:#e8ecf4;">${v.enlevement.destination}</span></div>
+      <div class="veh-meta">🕐 ${v.enlevement.date}</div>
+      ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}`:''}
+    ${isEnleve?`
+      <div class="divider"></div>
+      <button class="btn" style="background:#1e3a5f;color:#60a5fa;font-size:14px;margin-bottom:10px;" onclick="reopenVehicle(${id})">🔄 RÉOUVRIR LA FICHE</button>
+    `:''}
+    ${!isEnleve?`<div class="divider"></div>
+      <div class="section-label">Changer statut</div>
+      <div class="status-btns">${statusBtns}</div>
+      <div class="field" style="margin-top:10px;">
+        <label>Commentaire (optionnel)</label>
+        <input type="text" id="status-comment-${id}" placeholder="Ex: En attente pièce, Retour lundi..." style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;width:100%;">
+      </div>
+      <div style="margin-top:10px;"><button class="btn btn-success" style="font-size:14px;" onclick="openEnlModal(${id})">🚗 MARQUER COMME ENLEVÉ</button></div>
+      <div style="margin-top:10px;"><button class="btn btn-danger" style="font-size:14px;" onclick="deleteVehicle(${id})">🗑 Supprimer</button></div>`:''}
+    ${v.statusHistory&&v.statusHistory.length>0?`
+      <div class="divider"></div>
+      <div class="section-label">📋 Historique</div>
+      ${v.statusHistory.map(h=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <div><span class="badge ${STATUS_CLASS[h.status]||'badge-depose'}">${h.status}</span>${h.comment?`<span style="color:var(--muted);margin-left:6px;">— ${h.comment}</span>`:''}</div>
+        <div style="color:var(--muted);font-size:11px;">${h.date}</div>
+      </div>`).join('')}
+    `:''}
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+function changeStatus(id,status){
+  const v=vehicles.find(x=>x.id===id);if(!v)return;
+  const commentEl=document.getElementById('status-comment-'+id);
+  const comment=commentEl?commentEl.value.trim():'';
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status,comment,date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()});
+  v.status=status;
+  save();openModal(id);showToast('Statut : '+status);renderList();
+}
+function deleteVehicle(id){ if(!confirm('Supprimer ?'))return;vehicles=vehicles.filter(v=>v.id!==id);save();closeModal();renderList();showToast('Supprimé','#ef4444'); }
+
+function reopenVehicle(id){
+  if(!confirm('Réouvrir cette fiche ? Le véhicule repassera en liste active.')) return;
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  // Find last status before enlèvement from history
+  const lastStatus = v.statusHistory&&v.statusHistory.length>1
+    ? v.statusHistory[v.statusHistory.length-2].status
+    : 'Déposé garage';
+  v.status = lastStatus;
+  v.enlevement = null;
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status:lastStatus,comment:'Fiche réouverte',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()});
+  save(); closeModal(); renderArchives(); renderList();
+  showToast('🔄 Fiche réouverte — véhicule remis en liste active');
+}
+function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open'); }
+
+// ── ENLÈVEMENT ──
+function openEnlModal(id){
+  pendingEnlId=id; const v=vehicles.find(x=>x.id===id);
+  document.getElementById('enl-dest-origine').textContent="Lieu d'origine : "+v.entreprise;
+  document.getElementById('enl-qui').value='';
+  document.getElementById('enl-dest').value='origine';
+  document.getElementById('enl-autre-field').style.display='none';
+
+  document.getElementById('enl-autre-field').style.display='none';
+  document.getElementById('enl-autre-input').value='';
+  document.getElementById('enl-modal').classList.add('open');
+}
+function closeEnlModal(){ document.getElementById('enl-modal').classList.remove('open');pendingEnlId=null; }
+function toggleAutre(){ document.getElementById('enl-autre-field').style.display=document.getElementById('enl-dest').value==='autre'?'block':'none'; }
+function confirmEnlevement(){
+  const qui=document.getElementById('enl-qui').value, destVal=document.getElementById('enl-dest').value, autre=document.getElementById('enl-autre-input').value.trim();
+  if(!qui||!destVal){showToast('⚠️ Remplis tous les champs','#ef4444');return;}
+  if(destVal==='autre'&&!autre){showToast('⚠️ Précise la destination','#ef4444');return;}
+  const v=vehicles.find(x=>x.id===pendingEnlId);if(!v)return;
+  v.status='Enlevé'; v.enlevement={qui,destination:destVal==='origine'?v.entreprise:autre,date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()};
+  save();closeEnlModal();closeModal();renderList();showToast('✅ Véhicule enlevé');
+}
+
+function openMultiEnlModal(){
+  selectedMultiIds=[];const list=activeVeh();if(list.length===0){showToast('Aucun véhicule actif','#ef4444');return;}
+  document.getElementById('multi-enl-qui').value='';
+  document.getElementById('multi-veh-list').innerHTML=list.map(v=>`
+    <div class="multi-veh-item" id="mvi-${v.id}" onclick="toggleMultiSelect(${v.id})">
+      <div class="multi-check" id="mc-${v.id}"></div>
+      <div><div class="mveh-plate">${v.plaque}</div><div class="mveh-info">${v.entreprise} → ${v.centre} · <span class="badge ${STATUS_CLASS[v.status]}" style="font-size:10px;">${v.status}</span></div></div>
+    </div>`).join('');
+  document.getElementById('multi-enl-modal').classList.add('open');
+}
+function toggleMultiSelect(id){
+  const idx=selectedMultiIds.indexOf(id);
+  if(idx===-1) selectedMultiIds.push(id); else selectedMultiIds.splice(idx,1);
+  const item=document.getElementById('mvi-'+id),check=document.getElementById('mc-'+id);
+  if(selectedMultiIds.includes(id)){item.classList.add('selected');check.textContent='✓';}
+  else{item.classList.remove('selected');check.textContent='';}
+}
+function closeMultiEnlModal(){ document.getElementById('multi-enl-modal').classList.remove('open');selectedMultiIds=[]; }
+function confirmMultiEnlevement(){
+  const qui=document.getElementById('multi-enl-qui').value;
+  if(selectedMultiIds.length===0){showToast('⚠️ Sélectionne au moins 1 véhicule','#ef4444');return;}
+  if(!qui){showToast('⚠️ Sélectionne qui enlève','#ef4444');return;}
+  const now=Date.now();
+  selectedMultiIds.forEach(id=>{const v=vehicles.find(x=>x.id===id);if(!v)return;v.status='Enlevé';v.enlevement={qui,destination:v.entreprise,date:new Date().toLocaleString('fr-BE'),timestamp:now};});
+  save();closeMultiEnlModal();renderList();showToast(`✅ ${selectedMultiIds.length} véhicule(s) enlevé(s)`);
+}
+
+// ── STATS DASHBOARD ──
+function checkAutoReset(){
+  const today=new Date(),lastReset=localStorage.getItem('midas_last_reset'),thisMonth=today.getFullYear()+'-'+(today.getMonth()+1);
+  if(today.getDate()===1&&lastReset!==thisMonth){ localStorage.setItem('midas_monthly','{}'); localStorage.setItem('midas_last_reset',thisMonth); }
+}
+function resetMensuel(){
+  if(!confirm('Remettre les compteurs mensuels à zéro ?'))return;
+  localStorage.setItem('midas_monthly','{}');
+  localStorage.setItem('midas_last_reset',new Date().getFullYear()+'-'+(new Date().getMonth()+1));
+  renderDashboard(); showToast('✅ Compteurs remis à zéro');
+}
+function renderDashboard(){
+  checkAutoReset();
+  const active=activeVeh();
+  const d=active.filter(v=>v.status==='Déposé garage').length;
+  const r=active.filter(v=>v.status==='Bon demandé / En réparation').length;
+  const t=active.filter(v=>v.status==='Terminé').length;
+  const arch=archivedVeh().length;
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-box"><div class="stat-num" style="color:#60a5fa;">${d}</div><div class="stat-label">Déposés</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#fb923c;">${r}</div><div class="stat-label">En réparation</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#86efac;">${t}</div><div class="stat-label">Terminés</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#818cf8;">${arch}</div><div class="stat-label">Enlevés</div></div>
+  `;
+  const monthly=JSON.parse(localStorage.getItem('midas_monthly')||'{}');
+  document.getElementById('stats-centre').innerHTML=CENTRES.map(c=>{
+    const actifs=active.filter(v=>v.centre===c).length;
+    const total=monthly[c]||0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-weight:500;">${c}</span>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:800;color:var(--accent);">${actifs}</span>
+        <span style="font-family:'Barlow Condensed';font-size:15px;color:var(--muted);">(${total} ce mois)</span>
+      </div></div>`;
+  }).join('');
+  const entreprises=[...new Set(vehicles.map(v=>v.entreprise))];
+  document.getElementById('stats-entreprise').innerHTML=entreprises.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:16px;">Aucune donnée</div>'
+    :entreprises.map(e=>{
+      const c=vehicles.filter(v=>v.entreprise===e).length;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:14px;font-weight:500;">${e}</span>
+        <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:800;color:var(--accent2);">${c}</span>
+      </div>`;
+    }).join('');
+  // Travaux ce mois
+  const monthlyVeh=vehicles.filter(v=>{
+    const d=new Date(v.timestamp);
+    const now=new Date();
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+  const travauxCount={};
+  monthlyVeh.forEach(v=>{
+    // Use bonTravaux (factured) if available, else chauffeur travaux
+    const travaux=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    travaux.forEach(t=>{ travauxCount[t]=(travauxCount[t]||0)+1; });
+  });
+  const travauxSorted=Object.entries(travauxCount).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('stats-travaux').innerHTML=travauxSorted.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:16px;">Aucune donnée ce mois</div>'
+    :travauxSorted.map(([t,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;">${t}</span>
+        <span style="font-family:'Barlow Condensed';font-size:20px;font-weight:800;color:var(--accent);">${c}</span>
+      </div>`).join('');
+}
+
+// ── BUREAU DASHBOARD ──
+function setBureauCentre(c,btn){
+  bureauCentre=c;
+  document.querySelectorAll('.centre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBureau();
+}
+
+function renderBureau(){
+  checkAutoReset();
+  const now=new Date();
+  const allActive=activeVeh();
+  const filtered=bureauCentre==='tous'?allActive:allActive.filter(v=>v.centre===bureauCentre);
+  const archived=bureauCentre==='tous'?archivedVeh():archivedVeh().filter(v=>v.centre===bureauCentre);
+
+  // Monthly vehicles (current month)
+  const monthlyAll=vehicles.filter(v=>{ const d=new Date(v.timestamp); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+  const monthly=bureauCentre==='tous'?monthlyAll:monthlyAll.filter(v=>v.centre===bureauCentre);
+
+  // Terminés ce mois
+  const terminesMois=monthly.filter(v=>v.status==='Terminé'||v.status==='Enlevé').length;
+
+  // Moyenne immobilisation (enlevés seulement = données complètes)
+  const avgImmo=(list)=>{
+    const withDays=list.filter(v=>v.enlevement);
+    if(!withDays.length) return '—';
+    const avg=withDays.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/withDays.length;
+    return avg.toFixed(1)+' j';
+  };
+
+  // KPIs
+  document.getElementById('bureau-kpi').innerHTML=`
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#60a5fa;">${filtered.length}</div><div class="bureau-stat-label">Véhicules en centre</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#f59e0b;">${monthly.length}</div><div class="bureau-stat-label">Reçus ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${terminesMois}</div><div class="bureau-stat-label">Terminés ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${archived.length}</div><div class="bureau-stat-label">Enlevés ce mois</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo(archived)}</div><div class="bureau-stat-label">Immobilisation moy.</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#ef4444;">${filtered.filter(v=>workdaysSince(v.timestamp)>5).length}</div><div class="bureau-stat-label">Dépassent 5 j ouvrables</div></div>
+  `;
+
+  // Liste véhicules en centre
+  document.getElementById('bureau-veh-list').innerHTML=filtered.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:20px;">Aucun véhicule en centre</div>'
+    :filtered.map(v=>{
+      const d=daysSince(v.timestamp);
+      return `<div class="bureau-veh-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="bureau-veh-plate">${v.plaque}</div>
+          <span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span>
+        </div>
+        <div class="bureau-veh-info">🏢 <span>${v.entreprise}</span> · 🏭 <span>${v.centre}</span></div>
+        <div class="bureau-veh-info">👤 <span>${v.chauffeur}</span> · 📅 <span style="color:${workdaysSince(v.timestamp)>5?'#ef4444':workdaysSince(v.timestamp)>3?'#fb923c':'#86efac'};">${d} jour${d>1?'s':''}</span></div>
+        ${v.travaux&&v.travaux.length>0?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
+      </div>`;
+    }).join('');
+
+  // Alertes 5+ jours
+  const alerts=filtered.filter(v=>workdaysSince(v.timestamp)>5);
+  document.getElementById('bureau-alerts').innerHTML=alerts.length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">✅ Aucun dépassement</div>'
+    :alerts.map(v=>{
+      const d=daysSince(v.timestamp);
+      return `<div class="alert-row">
+        <div class="alert-plate">${v.plaque} — ${d} jours</div>
+        <div class="alert-info">${v.entreprise} · ${(v.travaux||[]).join(', ')||'—'}</div>
+      </div>`;
+    }).join('');
+
+  // Par client ce mois
+  const clientCounts={};
+  monthly.forEach(v=>{ const g=clientGroup(v.entreprise); clientCounts[g]=(clientCounts[g]||0)+1; });
+  const clientSorted=Object.entries(clientCounts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('bureau-by-client').innerHTML=clientSorted.length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Aucune donnée ce mois</div>'
+    :clientSorted.map(([c,n])=>`<div class="bureau-stat-row"><span>${c}</span><span class="bureau-stat-val">${n}</span></div>`).join('');
+
+  // Immobilisation moy par client (sur enlevés)
+  const clientGroups={};
+  archived.filter(v=>v.enlevement).forEach(v=>{
+    const g=clientGroup(v.entreprise);
+    if(!clientGroups[g]) clientGroups[g]=[];
+    clientGroups[g].push(daysBetween(v.timestamp,v.enlevement.timestamp));
+  });
+  document.getElementById('bureau-immo-client').innerHTML=Object.keys(clientGroups).length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Pas encore de données</div>'
+    :Object.entries(clientGroups).map(([c,days])=>{
+      const avg=(days.reduce((s,d)=>s+d,0)/days.length).toFixed(1);
+      return `<div class="bureau-stat-row"><span>${c}</span><span class="bureau-stat-val">${avg} j</span></div>`;
+    }).join('');
+
+  // Immobilisation par type de travail & par fournisseur (sur enlevés)
+  // Structure: { travail: { client: [days] } }
+  const travauxImmo={};
+  archived.filter(v=>v.enlevement).forEach(v=>{
+    const d=daysBetween(v.timestamp,v.enlevement.timestamp);
+    const g=clientGroup(v.entreprise);
+    (v.travaux||[]).forEach(t=>{
+      if(!travauxImmo[t]) travauxImmo[t]={};
+      if(!travauxImmo[t][g]) travauxImmo[t][g]=[];
+      travauxImmo[t][g].push(d);
+    });
+  });
+  document.getElementById('bureau-immo-travail').innerHTML=Object.keys(travauxImmo).length===0
+    ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">Pas encore de données</div>'
+    :Object.entries(travauxImmo).map(([travail,clients])=>`
+      <div style="margin-bottom:10px;">
+        <div style="font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;">${travail}</div>
+        <table class="sub-table">
+          <tr><th>Client</th><th>Moy. jours</th><th>Nb</th></tr>
+          ${Object.entries(clients).map(([c,days])=>{
+            const avg=(days.reduce((s,d)=>s+d,0)/days.length).toFixed(1);
+            return `<tr><td>${c}</td><td>${avg} j</td><td>${days.length}</td></tr>`;
+          }).join('')}
+        </table>
+      </div>`).join('');
+}
+
+// ── ATELIER ──
+let atelierCentre='Zaventem';
+let currentDossierId=null;
+let pendingPhotos=[];
+
+function setAtelierCentre(c,btn){
+  atelierCentre=c;
+  document.querySelectorAll('#atelier-centre-selector .centre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAtelier();
+}
+
+function renderAtelier(){
+  const list=activeVeh().filter(v=>v.centre===atelierCentre);
+  const sans=list.filter(v=>!v.dossier);
+  const avec=list.filter(v=>v.dossier);
+
+  const cardHtml=(v)=>`<div class="atelier-veh ${v.dossier?'has-dossier':''}" onclick="openDossierModal(${v.id})">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="atelier-veh-plate">${v.plaque}${v.dossier?'<span class="dossier-icon">📁</span>':''}</div>
+      <span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span>
+    </div>
+    <div class="atelier-veh-info">🏢 <span>${v.entreprise}</span></div>
+    <div class="atelier-veh-info">📅 <span>${daysSince(v.timestamp)} jour${daysSince(v.timestamp)>1?'s':''} au centre</span></div>
+    ${v.travaux&&v.travaux.length>0?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${v.travaux.slice(0,3).map(t=>`<span class="veh-tag">${t}</span>`).join('')}${v.travaux.length>3?`<span class="veh-tag">+${v.travaux.length-3}</span>`:''}</div>`:''}
+    ${v.dossier&&v.dossier.note?`<div style="font-size:11px;color:#34d399;margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">💬 ${v.dossier.note}</div>`:''}
+  </div>`;
+
+  const empty=(msg)=>`<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">${msg}</div>`;
+  document.getElementById('atelier-sans-dossier').innerHTML=sans.length===0?empty('Tous les véhicules ont un dossier ✅'):sans.map(cardHtml).join('');
+  document.getElementById('atelier-avec-dossier').innerHTML=avec.length===0?empty('Aucun dossier constitué'):avec.map(cardHtml).join('');
+}
+
+function openDossierModal(id){
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  currentDossierId=id;
+  pendingPhotos=v.dossier&&v.dossier.photos?[...v.dossier.photos]:[];
+  document.getElementById('dossier-plate').textContent=v.plaque;
+  document.getElementById('dossier-info').textContent=v.entreprise+' · '+v.centre+' · '+daysSince(v.timestamp)+' jour(s)';
+  document.getElementById('dossier-note').value=v.dossier&&v.dossier.note?v.dossier.note:'';
+  document.getElementById('dossier-delete-btn').style.display=v.dossier?'block':'none';
+  renderPhotoGrid();
+  document.getElementById('dossier-modal').classList.add('open');
+}
+
+function closeDossierModal(){
+  document.getElementById('dossier-modal').classList.remove('open');
+  currentDossierId=null; pendingPhotos=[];
+  document.getElementById('dossier-photo-cam').value='';
+  document.getElementById('dossier-photo-alb').value='';
+}
+
+function addDossierPhoto(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const tmpImg=new Image();
+    tmpImg.onload=function(){
+      const canvas=document.createElement('canvas');
+      const MAX=700; let w=tmpImg.width,h=tmpImg.height;
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(tmpImg,0,0,w,h);
+      pendingPhotos.push(canvas.toDataURL('image/jpeg',0.65));
+      renderPhotoGrid();
+    };
+    tmpImg.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+function renderPhotoGrid(){
+  const grid=document.getElementById('dossier-photo-grid');
+  const thumbs=pendingPhotos.map((p,i)=>`
+    <div style="position:relative;">
+      <img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>
+      <button onclick="removePhoto(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>`).join('');
+  grid.innerHTML=thumbs+`
+    <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-cam').click()"><span>📷</span>Photo</div>
+    <div class="photo-add-btn" onclick="document.getElementById('dossier-photo-alb').click()"><span>🖼️</span>Album</div>`;
+}
+
+function removePhoto(idx){
+  pendingPhotos.splice(idx,1);
+  renderPhotoGrid();
+}
+
+function saveDossier(){
+  const v=vehicles.find(x=>x.id===currentDossierId); if(!v) return;
+  const note=document.getElementById('dossier-note').value.trim();
+  if(!note&&pendingPhotos.length===0){showToast('⚠️ Ajoute une note ou une photo','#ef4444');return;}
+  v.dossier={note,photos:[...pendingPhotos],date:new Date().toLocaleString('fr-BE')};
+  save(); closeDossierModal(); renderAtelier(); showToast('📁 Dossier enregistré','#059669');
+}
+
+function deleteDossier(){
+  if(!confirm('Supprimer ce dossier ?')) return;
+  const v=vehicles.find(x=>x.id===currentDossierId); if(!v) return;
+  v.dossier=null; save(); closeDossierModal(); renderAtelier(); showToast('Dossier supprimé','#ef4444');
+}
+
+function openPhotoViewer(src){
+  document.getElementById('photo-viewer-img').src=src;
+  document.getElementById('photo-viewer').classList.add('open');
+}
+function closePhotoViewer(){
+  document.getElementById('photo-viewer').classList.remove('open');
+}
+
+// ── AUTO REFRESH (5 min) ──
+async function refreshData(){
+  const fresh = await loadVehicles();
+  if(JSON.stringify(fresh) !== JSON.stringify(vehicles)){
+    vehicles = fresh;
+    const activePage = document.querySelector('.page.active, .page-bureau.active');
+    if(activePage){
+      const id = activePage.id.replace('page-','');
+      if(id==='liste') renderList();
+      if(id==='dashboard') renderDashboard();
+      if(id==='archives') renderArchives();
+      if(id==='bureau') renderBureau();
+      if(id==='atelier') renderAtelier();
+    }
+    showToast('🔄 Liste mise à jour','#3b82f6');
+  }
+}
+setInterval(refreshData, 300000); // 5 minutes
+
+// ── RAPPORTS ──
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let selectedMonth = new Date().getMonth();
+let selectedYear = new Date().getFullYear();
+let chartInstances = {};
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function createLineChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: datasets.map(d=>({
+      ...d,
+      tension: 0.4,
+      fill: true,
+      backgroundColor: d.color+'22',
+      borderColor: d.color,
+      borderWidth: 2,
+      pointBackgroundColor: d.color,
+      pointRadius: 4
+    }))},
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createBarChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(d=>({ ...d, backgroundColor: d.color+'99', borderColor: d.color, borderWidth:1 })) },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function getVehiclesForMonth(month, year){
+  return vehicles.filter(v=>{
+    const d = new Date(v.timestamp);
+    return d.getMonth()===month && d.getFullYear()===year;
+  });
+}
+
+function renderRapports(){
+  // Build year selector
+  const yearSel = document.getElementById('rapports-year-select');
+  if(yearSel){
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    // Collect all years from vehicles data
+    vehicles.forEach(v=>{ const y=new Date(v.timestamp).getFullYear(); if(!years.includes(y)) years.push(y); });
+    if(!years.includes(currentYear)) years.push(currentYear);
+    years.sort((a,b)=>b-a);
+    yearSel.innerHTML = years.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('');
+  }
+
+  // Build month tabs
+  const tabsEl = document.getElementById('month-tabs');
+  tabsEl.innerHTML = MONTHS.map((m,i)=>`
+    <button onclick="selectMonth(${i})" id="mtab-${i}" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:${i===selectedMonth?'var(--accent)':'transparent'};color:${i===selectedMonth?'#000':'var(--muted)'};font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">${m}</button>
+  `).join('');
+
+  renderMonthData(selectedMonth, selectedYear);
+}
+
+function selectMonth(m){
+  selectedMonth = m;
+  renderRapports();
+}
+
+function renderMonthData(month, year){
+  year = year || selectedYear;
+  const monthVeh = getVehiclesForMonth(month, year);
+  const enleves = monthVeh.filter(v=>v.status==='Enlevé'||v.enlevement);
+  const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+
+  // KPIs
+  const withDays = enleves.filter(v=>v.enlevement);
+  const avgImmo = withDays.length>0
+    ? (withDays.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/withDays.length).toFixed(1)
+    : '—';
+
+  document.getElementById('rapports-kpi').innerHTML = `
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#f59e0b;">${monthVeh.length}</div><div class="bureau-stat-label">Reçus</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${termines.length}</div><div class="bureau-stat-label">Terminés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${enleves.length}</div><div class="bureau-stat-label">Enlevés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo}</div><div class="bureau-stat-label">Moy. jours</div></div>
+  `;
+
+  // Chart 1: reçus vs terminés (last 6 months)
+  const last6 = [];
+  const last6Labels = [];
+  const last6Termines = [];
+  for(let i=5;i>=0;i--){
+    let m = month-i; let y = year;
+    if(m<0){m+=12;y--;}
+    last6Labels.push(MONTHS[m]);
+    last6.push(getVehiclesForMonth(m,y).length);
+    last6Termines.push(getVehiclesForMonth(m,y).filter(v=>v.status==='Terminé'||v.status==='Enlevé').length);
+  }
+  createLineChart('chart-recus-termines', last6Labels, [
+    {label:'Reçus', data:last6, color:'#f59e0b'},
+    {label:'Terminés', data:last6Termines, color:'#22c55e'}
+  ]);
+
+  // Chart 2: par centre
+  const centreData = CENTRES.map(c=>monthVeh.filter(v=>v.centre===c).length);
+  createBarChart('chart-par-centre', CENTRES, [
+    {label:'Véhicules', data:centreData, color:'#3b82f6'}
+  ]);
+
+  // Chart 3: top clients (grouped)
+  const clientMap = {};
+  monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+  const clientsSorted = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  createBarChart('chart-clients', clientsSorted.map(x=>x[0]), [
+    {label:'Véhicules', data:clientsSorted.map(x=>x[1]), color:'#a855f7'}
+  ]);
+
+  // Chart 4: immobilisation par centre (last 6 months)
+  const immoData = CENTRES.map(c=>{
+    const cVeh = last6Labels.map((_,i)=>{
+      let m=month-5+i; let y=year; if(m<0){m+=12;y--;}
+      return getVehiclesForMonth(m,y).filter(v=>v.centre===c&&v.enlevement);
+    });
+    return cVeh.map(vList=>{
+      if(!vList.length) return 0;
+      return (vList.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/vList.length).toFixed(1);
+    });
+  });
+  createLineChart('chart-immo', last6Labels, [
+    {label:'Zaventem', data:immoData[0], color:'#f59e0b'},
+    {label:'Rhode',    data:immoData[1], color:'#3b82f6'},
+    {label:'Hannut',   data:immoData[2], color:'#22c55e'}
+  ]);
+
+  // Table centres
+  document.getElementById('rapports-centres').innerHTML = CENTRES.map(c=>{
+    const n = monthVeh.filter(v=>v.centre===c).length;
+    const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+    const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+'j':'—';
+    return `<div class="bureau-stat-row"><span>${c}</span><div style="text-align:right;"><div class="bureau-stat-val">${n}</div><div style="font-size:11px;color:var(--muted);">moy: ${avg}</div></div></div>`;
+  }).join('');
+
+  // Table travaux
+  const travauxMap = {};
+  monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+  const travauxSorted = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('rapports-travaux').innerHTML = travauxSorted.length===0
+    ? '<div style="color:var(--muted);padding:8px;font-size:13px;">Aucune donnée</div>'
+    : travauxSorted.map(([t,n])=>`<div class="bureau-stat-row"><span style="font-size:13px;">${t}</span><span class="bureau-stat-val">${n}</span></div>`).join('');
+}
+
+// ── EXPORTS ──
+function exportMonthPDF(){
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const monthName = MONTHS_FULL[selectedMonth];
+    const year = selectedYear;
+    const monthVeh = getVehiclesForMonth(selectedMonth, year);
+    const enleves = monthVeh.filter(v=>v.enlevement);
+    const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+    const avgImmo = enleves.length>0
+      ? (enleves.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enleves.length).toFixed(1)
+      : '—';
+
+    // Header
+    doc.setFillColor(245,158,11);
+    doc.rect(0,0,210,25,'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text('Midas FleetTrack', 14, 10);
+    doc.setFontSize(12); doc.setFont('helvetica','normal');
+    doc.text(`Rapport mensuel — ${monthName} ${year}`, 14, 18);
+    doc.setTextColor(0,0,0);
+
+    // KPIs
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Résumé du mois', 14, 35);
+    doc.autoTable({
+      startY: 40,
+      head: [['Véhicules reçus','Terminés','Enlevés','Immobilisation moy.']],
+      body: [[monthVeh.length, termines.length, enleves.length, avgImmo+' j']],
+      headStyles: { fillColor: [245,158,11], textColor: 0 },
+      styles: { fontSize: 11, halign: 'center' }
+    });
+
+    // Par centre
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par centre', 14, doc.lastAutoTable.finalY + 12);
+    const centreRows = CENTRES.map(c=>{
+      const n = monthVeh.filter(v=>v.centre===c).length;
+      const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+' j':'—';
+      return [c, n, avg];
+    });
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Centre','Véhicules','Immobilisation moy.']],
+      body: centreRows,
+      headStyles: { fillColor: [59,130,246], textColor: 255 },
+    });
+
+    // Par client
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par client', 14, doc.lastAutoTable.finalY + 12);
+    const clientMap = {};
+    monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+    const clientRows = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[c,n]);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Client','Véhicules']],
+      body: clientRows,
+      headStyles: { fillColor: [168,85,247], textColor: 255 },
+    });
+
+    // Travaux
+    const travauxMap = {};
+    monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+    const travauxRows = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]).map(([t,n])=>[t,n]);
+    if(travauxRows.length > 0){
+      doc.setFontSize(11); doc.setFont('helvetica','bold');
+      doc.text('Types de travaux', 14, doc.lastAutoTable.finalY + 12);
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Travail','Occurrences']],
+        body: travauxRows,
+        headStyles: { fillColor: [34,197,94], textColor: 0 },
+      });
+    }
+
+    // Footer
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text(`Généré le ${new Date().toLocaleString('fr-BE')} — Midas FleetTrack`, 14, 285);
+
+    doc.save(`Midas_Rapport_${monthName}_${year}.pdf`);
+    showToast('📄 PDF téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur PDF','#ef4444'); }
+}
+
+function exportYearExcel(){
+  try {
+    const wb = window.XLSX.utils.book_new();
+    const year = selectedYear;
+
+    // Sheet 1: All vehicles of the year
+    const yearVeh = vehicles.filter(v=>new Date(v.timestamp).getFullYear()===year);
+    const rows = yearVeh.map(v=>({
+      'Mois': MONTHS_FULL[new Date(v.timestamp).getMonth()],
+      'Plaque': v.plaque,
+      'Client': v.entreprise,
+      'Centre': v.centre,
+      'Chauffeur': v.chauffeur,
+      'Statut': v.status,
+      'Date dépôt': v.date,
+      'Date enlèvement': v.enlevement?v.enlevement.date:'',
+      'Enlevé par': v.enlevement?v.enlevement.qui:'',
+      'Destination': v.enlevement?v.enlevement.destination:'',
+      'Jours au centre': v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):'',
+      'Constaté prise en charge': (v.travaux||[]).join(', ')||'—',
+      'Travaux du bon': (v.bonTravaux||[]).join(', ')||'—',
+      'Kilométrage': v.km||'',
+      'Remarques': v.remarques||''
+    }));
+    const ws1 = window.XLSX.utils.json_to_sheet(rows);
+    window.XLSX.utils.book_append_sheet(wb, ws1, 'Véhicules '+year);
+
+    // Sheet 2: Monthly summary
+    const summaryRows = MONTHS_FULL.map((m,i)=>{
+      const mv = getVehiclesForMonth(i, year);
+      const enl = mv.filter(v=>v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1):'—';
+      return {
+        'Mois': m,
+        'Reçus': mv.length,
+        'Terminés': mv.filter(v=>v.status==='Terminé'||v.status==='Enlevé').length,
+        'Enlevés': enl.length,
+        'Immobilisation moy. (j)': avg,
+        'Zaventem': mv.filter(v=>v.centre==='Zaventem').length,
+        'Rhode': mv.filter(v=>v.centre==='Rhode').length,
+        'Hannut': mv.filter(v=>v.centre==='Hannut').length,
+      };
+    });
+    const ws2 = window.XLSX.utils.json_to_sheet(summaryRows);
+    window.XLSX.utils.book_append_sheet(wb, ws2, 'Résumé mensuel');
+
+    window.XLSX.writeFile(wb, `Midas_Rapport_${year}.xlsx`);
+    showToast('📊 Excel téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur Excel','#ef4444'); }
+}
+
+// ── BON TRAVAUX ──
+let pendingBonId = null;
+
+function buildBonTravauxGrid(){
+  const grid = document.getElementById('bon-travaux-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  BON_TRAVAUX.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'check-item';
+    d.dataset.travail = t;
+    d.innerHTML = `<div class="check-dot"></div><span>${t}</span>`;
+    d.onclick = () => {
+      d.classList.toggle('checked');
+      d.querySelector('.check-dot').textContent = d.classList.contains('checked') ? '✓' : '';
+    };
+    grid.appendChild(d);
+  });
+}
+
+function openBonModal(id){
+  pendingBonId = id;
+  const v = vehicles.find(x=>x.id===id);
+  // Pre-check existing bon travaux if any
+  buildBonTravauxGrid();
+  if(v.bonTravaux && v.bonTravaux.length>0){
+    v.bonTravaux.forEach(t=>{
+      const el = document.querySelector(`#bon-travaux-grid [data-travail="${t}"]`);
+      if(el){ el.classList.add('checked'); el.querySelector('.check-dot').textContent='✓'; }
+    });
+  }
+  document.getElementById('bon-remarque').value = v.bonRemarque||'';
+  document.getElementById('bon-modal').classList.add('open');
+}
+
+function closeBonModal(){
+  document.getElementById('bon-modal').classList.remove('open');
+  pendingBonId = null;
+}
+
+function confirmBon(){
+  const v = vehicles.find(x=>x.id===pendingBonId); if(!v) return;
+  const bonTravaux = [...document.querySelectorAll('#bon-travaux-grid .check-item.checked')].map(el=>el.dataset.travail);
+  const bonRemarque = document.getElementById('bon-remarque').value.trim();
+  if(bonTravaux.length===0){ showToast('⚠️ Coche au moins un travail','#ef4444'); return; }
+  v.bonTravaux = bonTravaux;
+  v.bonRemarque = bonRemarque;
+  v.status = 'Bon demandé / En réparation';
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status:'Bon demandé / En réparation', comment: bonTravaux.join(', ')+(bonRemarque?' — '+bonRemarque:''), date:new Date().toLocaleString('fr-BE'), timestamp:Date.now()});
+  save(); closeBonModal(); closeModal(); renderList();
+  showToast('📋 Bon enregistré');
+}
+
+// ── PARKING ──
+let pendingParkingId = null;
+let selectedParking = null;
+
+function toggleParking(el, val){
+  // Single select
+  document.querySelectorAll('#parking-grid .check-item').forEach(i=>{
+    i.classList.remove('checked');
+    i.querySelector('.check-dot').textContent='';
+  });
+  el.classList.add('checked');
+  el.querySelector('.check-dot').textContent='✓';
+  selectedParking = val;
+}
+
+function openParkingModal(id){
+  pendingParkingId = id;
+  selectedParking = null;
+  document.querySelectorAll('#parking-grid .check-item').forEach(i=>{
+    i.classList.remove('checked');
+    i.querySelector('.check-dot').textContent='';
+  });
+  document.getElementById('parking-modal').classList.add('open');
+}
+
+function confirmParking(skip){
+  const v = vehicles.find(x=>x.id===pendingParkingId); if(!v) return;
+  v.status = 'Terminé';
+  if(!skip && selectedParking) v.parking = selectedParking;
+  else if(skip) v.parking = null;
+  if(!v.statusHistory) v.statusHistory=[];
+  const comment = selectedParking && !skip ? `Emplacement : ${selectedParking}` : '';
+  v.statusHistory.push({status:'Terminé', comment, date:new Date().toLocaleString('fr-BE'), timestamp:Date.now()});
+  save();
+  document.getElementById('parking-modal').classList.remove('open');
+  pendingParkingId = null;
+  closeModal(); renderList();
+  showToast('✅ Véhicule terminé'+(selectedParking&&!skip?' — '+selectedParking:''));
+}
+
+// ── TOAST ──
+function showToast(msg,color='#22c55e'){
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.background=color; t.style.color=color==='#22c55e'?'#000':'#fff';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── OFFLINE DETECTION ──
+let offlineQueue = [];
+let isOnline = navigator.onLine;
+
+window.addEventListener('online', async () => {
+  isOnline = true;
+  document.getElementById('offline-banner').style.display = 'none';
+  if(offlineQueue.length > 0) {
+    showToast('🔄 Synchronisation en cours...','#3b82f6');
+    await save();
+    offlineQueue = [];
+    showToast('✅ Données synchronisées !');
+  }
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  document.getElementById('offline-banner').style.display = 'block';
+  showToast('⚠️ Hors ligne — sauvegarde locale','#f59e0b');
+});
+
+if(!navigator.onLine) {
+  document.getElementById('offline-banner').style.display = 'block';
+}
+
+// ── THEME ──
+function toggleTheme(){
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('midas_theme', isLight ? 'light' : 'dark');
+}
+// Restore theme
+if(localStorage.getItem('midas_theme') === 'light'){
+  document.documentElement.classList.add('light');
+  setTimeout(()=>{ const btn=document.getElementById('theme-btn'); if(btn) btn.textContent='☀️'; },100);
+}
+
+// ── INIT ──
+async function init(){
+  showToast('⏳ Chargement...','#3b82f6');
+  await Promise.all([loadVehicles().then(v=>vehicles=v), loadPins()]);
+  initLogin();
+}
+init();
+</script>
+</body>
+</html>
