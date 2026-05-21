@@ -1035,7 +1035,16 @@ const ROW_ID = 1;
 
 async function save(){
   try {
-    const payload = JSON.stringify(vehicles);
+    // Strip photos/dossier images before sending to Supabase (too large)
+    const stripped = vehicles.map(v => {
+      const copy = Object.assign({}, v);
+      if(copy.photos) copy.photos = copy.photos.map((_,i) => '__photo_'+v.id+'_'+i);
+      if(copy.dossier && copy.dossier.photos) copy.dossier = Object.assign({}, copy.dossier, {photos: copy.dossier.photos.map((_,i) => '__dphoto_'+v.id+'_'+i)});
+      return copy;
+    });
+    const payload = JSON.stringify(stripped);
+    // Save full data (with photos) to localStorage
+    try{ localStorage.setItem('fleettrack_v4', JSON.stringify(vehicles)); }catch(e){}
     const res = await fetch(`${SUPA_URL}/rest/v1/fleet_data`, {
       method: 'POST',
       headers: {
@@ -1046,7 +1055,6 @@ async function save(){
       },
       body: JSON.stringify({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() })
     });
-    try{ localStorage.setItem('fleettrack_v4', payload); }catch(e){}
     if(!res.ok){ const txt = await res.text(); console.warn('Save failed:', res.status, txt); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
   } catch(e){ console.warn('Save error:', e); showToast('⚠️ Erreur sauvegarde','#ef4444'); }
 }
