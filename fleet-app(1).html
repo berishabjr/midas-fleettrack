@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Midas FleetTrack</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FleetTrack">
@@ -552,6 +556,91 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 10
   <img id="photo-viewer-img" src="" alt="">
 </div>
 
+<!-- RAPPORTS OMAR -->
+<div class="page" id="page-rapports" style="max-width:900px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div style="font-family:var(--font-head);font-size:26px;font-weight:800;">📈 Rapports <span style="color:var(--accent);">Mensuels</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="rapports-year-select" onchange="selectedYear=parseInt(this.value);renderRapports()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font-head);font-size:14px;font-weight:600;outline:none;cursor:pointer;"></select>
+      <button onclick="exportMonthPDF()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📄 PDF mois</button>
+      <button onclick="exportYearExcel()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">📊 Excel année</button>
+    </div>
+  </div>
+  <!-- Month tabs -->
+  <div style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;" id="month-tabs"></div>
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="rapports-kpi"></div>
+  <!-- Charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Véhicules reçus vs terminés</div>
+      <canvas id="chart-recus-termines" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Répartition par centre</div>
+      <canvas id="chart-par-centre" height="200"></canvas>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Top clients</div>
+      <canvas id="chart-clients" height="200"></canvas>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Immobilisation moyenne (jours)</div>
+      <canvas id="chart-immo" height="200"></canvas>
+    </div>
+  </div>
+  <!-- Detail tables -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="bureau-card">
+      <div class="bureau-card-title">Par centre</div>
+      <div id="rapports-centres"></div>
+    </div>
+    <div class="bureau-card">
+      <div class="bureau-card-title">Types de travaux</div>
+      <div id="rapports-travaux"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BON TRAVAUX -->
+<div class="enl-modal-overlay" id="bon-modal">
+  <div class="enl-modal">
+    <div class="enl-title">📋 Travaux du bon</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Coche les travaux réellement demandés/facturés</div>
+    <div class="check-grid" id="bon-travaux-grid" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Remarque bon (optionnel)</label>
+      <input type="text" id="bon-remarque" placeholder="Ex: 2 pneus remplacés, sous garantie...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+      <button class="btn btn-ghost" onclick="closeBonModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmBon()">✅ Confirmer le bon</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARKING -->
+<div class="enl-modal-overlay" id="parking-modal">
+  <div class="enl-modal">
+    <div class="enl-title">✅ Véhicule terminé</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Emplacement du véhicule (optionnel)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="parking-grid">
+      <div class="check-item" onclick="toggleParking(this,'Jardin')"><div class="check-dot"></div><span>🌳 Jardin</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Pompiers')"><div class="check-dot"></div><span>🚒 Pompiers</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Rue')"><div class="check-dot"></div><span>🛣️ Rue</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Chée de Louv')"><div class="check-dot"></div><span>📍 Chée de Louv</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Q8')"><div class="check-dot"></div><span>⛽ Q8</span></div>
+      <div class="check-item" onclick="toggleParking(this,'Autre')"><div class="check-dot"></div><span>📌 Autre</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn btn-ghost" onclick="confirmParking(true)">⏭️ Passer</button>
+      <button class="btn btn-success" onclick="confirmParking(false)">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DETAIL -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal">
@@ -630,7 +719,7 @@ const PROFILE_TABS = {
   'Midas Zaventem': ['encode','liste','dashboard','archives','bureau','atelier'],
   'Midas Rhode':    ['encode','liste','dashboard','archives','bureau','atelier'],
   'Auto 5':         ['encode','liste','dashboard','archives','bureau','atelier'],
-  'Omar':           ['encode','liste','dashboard','archives','bureau','atelier'],
+  'Omar':           ['encode','liste','dashboard','archives','bureau','atelier','rapports'],
 };
 const TAB_LABELS = {
   'encode':    ['📋 Déposer',   "showPage('encode')"],
@@ -639,15 +728,59 @@ const TAB_LABELS = {
   'archives':  ['📁 Archives',  "showPage('archives')"],
   'bureau':    ["🖥️ Bureau",    "showPage('bureau')"],
   'atelier':   ['🔧 Atelier',   "showPage('atelier')"],
+  'rapports':  ['📈 Rapports',  "showPage('rapports')"],
 };
 const CENTRES=['Zaventem','Rhode','Hannut'];
-const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Accident','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.'];
+const BON_TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.','Rétroviseur G','Rétroviseur D','Plage arrière','MO réparation','MO remplacement','Autre'];
+const TRAVAUX=['Entretien','Témoin pneu','Permutation','Lave glace','Problèmes phares av.','Problèmes phares arr.','Témoin moteur','Dégâts fouines','Ad Blue','Témoin airbag','Nettoyage spécial','Freins','Préparation CT','Problème verrouillage','Batterie','A vérifier','Embrayage','Pneus av.','Pneus arr.','Rétroviseur G','Rétroviseur D'];
 const STATUS_LIST=['Déposé garage','Bon demandé / En réparation','Terminé'];
 const STATUS_CLASS={'Déposé garage':'badge-depose','Bon demandé / En réparation':'badge-reparation','Terminé':'badge-termine','Enlevé':'badge-enleve'};
 
 let vehicles=[], currentFilter='tous', currentDriverName=null, pendingEnlId=null, selectedMultiIds=[], bureauCentre='tous', defaultCentreFilter=null, encodePhotos=[];
 
 // ── HELPERS ──
+// Belgian public holidays (fixed dates, MM-DD format)
+const BE_HOLIDAYS_FIXED = ['01-01','05-01','07-21','08-15','11-01','11-11','12-25'];
+
+function isWorkday(date){
+  const d = new Date(date);
+  const dow = d.getDay();
+  if(dow===0||dow===6) return false; // weekend
+  const mmdd = String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(BE_HOLIDAYS_FIXED.includes(mmdd)) return false;
+  // Easter-based holidays (approximate for 2025-2027)
+  const year = d.getFullYear();
+  // Easter Sunday calculation (Gauss algorithm)
+  const a=year%19,b=Math.floor(year/100),c=year%100;
+  const d2=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d2-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  const easter = new Date(year,month-1,day);
+  const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate()+1);
+  const ascension = new Date(easter); ascension.setDate(easter.getDate()+39);
+  const whitMonday = new Date(easter); whitMonday.setDate(easter.getDate()+50);
+  const moveable = [easterMonday,ascension,whitMonday].map(x=>
+    String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')
+  );
+  if(moveable.includes(mmdd)) return false;
+  return true;
+}
+
+function workdaysSince(ts){
+  let count=0;
+  const start=new Date(ts);
+  const end=new Date();
+  const cur=new Date(start);
+  cur.setDate(cur.getDate()+1); // start counting from next day
+  while(cur<=end){
+    if(isWorkday(cur)) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+
 function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
 function daysBetween(ts1,ts2){ return Math.round(Math.abs(ts2-ts1)/86400000); }
 function activeVeh(){ return vehicles.filter(v=>v.status!=='Enlevé'); }
@@ -949,6 +1082,7 @@ function showPage(id){
   if(id==='archives') renderArchives();
   if(id==='bureau') renderBureau();
   if(id==='atelier') renderAtelier();
+  if(id==='rapports') renderRapports();
 }
 let currentCentreTab='tous';
 function setCentreTab(c,btn){
@@ -961,16 +1095,29 @@ function filterVehicles(f,btn){ currentFilter=f; document.querySelectorAll('.fil
 
 // ── VEHICLE CARD HTML ──
 function vehCardHtml(v,archived=false){
+  const isTermine = v.status==='Terminé';
+  const parkingVal = isTermine ? (v.parking||'Inconnu') : null;
+  const parkingColor = v.parking ? '#86efac' : '#6b7694';
   return `<div class="veh-card" onclick="openModal(${v.id})" style="${archived?'border-color:#3730a3;':''}">
-    <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span></div>
-    <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
-    <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
-    ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
-    ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
-    ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
-    ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
-    ${v.photos&&v.photos.length>0?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">${v.photos.length} photo${v.photos.length>1?'s':''}</span></div>`:''}
-    ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
+    <div style="display:flex;gap:10px;align-items:stretch;">
+      <div style="flex:1;min-width:0;">
+        <div class="veh-header"><div class="veh-plate">${v.plaque}</div><span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span></div>
+        <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
+        <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
+        ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+        ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
+        ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
+        ${v.travaux&&v.travaux.length>0?`<div class="veh-tags">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
+        ${v.bonTravaux&&v.bonTravaux.length>0?`<div class="veh-tags" style="margin-top:3px;">${v.bonTravaux.map(t=>`<span class="veh-tag" style="background:#0a1628;color:#60a5fa;">📋 ${t}</span>`).join('')}</div>`:''}
+        ${v.photos&&v.photos.length>0?`<div class="veh-meta" style="margin-top:4px;">📷 <span style="color:var(--muted);">${v.photos.length} photo${v.photos.length>1?'s':''}</span></div>`:''}
+        ${v.dossier?`<div class="veh-meta" style="margin-top:6px;">📁 <span style="color:#34d399;font-weight:600;">Dossier technique disponible</span></div>`:''}
+      </div>
+      ${parkingVal?`
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border:1px solid ${parkingColor}55;border-radius:8px;padding:8px 10px;min-width:68px;text-align:center;">
+        <div style="font-size:10px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Garé</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:${parkingColor};line-height:1.2;">${parkingVal}</div>
+      </div>`:''}
+    </div>
   </div>`;
 }
 
@@ -1011,6 +1158,7 @@ function renderArchives(){
         <div class="veh-meta">🏢 <span>${v.entreprise}</span> → 🏭 <span>${v.centre}</span></div>
         <div class="veh-meta">👤 <span>${v.chauffeur}</span> · 🕐 ${v.date}</div>
         ${v.km?`<div class="veh-meta">🔢 <span style="color:var(--accent);">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.parking?`<div class="veh-meta">📍 <span style="color:#86efac;font-weight:600;">${v.parking}</span></div>`:''}
         ${v.depanneuse?`<div class="veh-meta">🚛 <span style="color:#38bdf8;">Dépanneuse</span></div>`:''}
         ${v.enlevement?`<div class="veh-meta">🚗 Enlevé par <span>${v.enlevement.qui}</span></div>`:''}
         ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}
@@ -1023,7 +1171,15 @@ function openModal(id){
   const v=vehicles.find(x=>x.id===id); if(!v) return;
   document.getElementById('modal-plate').textContent=v.plaque;
   const isEnleve=v.status==='Enlevé';
-  const statusBtns=STATUS_LIST.map(s=>`<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`).join('');
+  const statusBtns=STATUS_LIST.map(s=>{
+    if(s==='Bon demandé / En réparation'){
+      return `<button class="status-btn ${v.status===s?'current':''}" onclick="closeModal();openBonModal(${id})">${s}</button>`;
+    }
+    if(s==='Terminé'){
+      return `<button class="status-btn ${v.status===s?'current':''}" onclick="closeModal();openParkingModal(${id})">${s}</button>`;
+    }
+    return `<button class="status-btn ${v.status===s?'current':''}" onclick="changeStatus(${id},'${s}')">${s}</button>`;
+  }).join('');
   const days=v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):null;
   document.getElementById('modal-body').innerHTML=`
     <div style="margin-bottom:12px;"><span class="badge ${STATUS_CLASS[v.status]}" style="font-size:13px;padding:5px 14px;">${v.status}</span></div>
@@ -1032,9 +1188,22 @@ function openModal(id){
     <div class="veh-meta" style="margin-bottom:8px;">🏭 Centre : <span style="color:#e8ecf4;">${v.centre}</span></div>
     <div class="veh-meta" style="margin-bottom:8px;">👤 <span style="color:#e8ecf4;">${v.chauffeur}</span></div>
     ${v.km?`<div class="veh-meta" style="margin-bottom:8px;">🔢 <span style="color:var(--accent);font-weight:700;">${v.km.toLocaleString()} km</span></div>`:''}
+    ${v.parking?`<div class="veh-meta" style="margin-bottom:8px;">📍 Emplacement : <span style="color:#86efac;font-weight:600;">${v.parking}</span></div>`:''}
     ${v.depanneuse?`<div class="veh-meta" style="margin-bottom:8px;">🚛 <span style="color:#38bdf8;">Arrivée en dépanneuse</span></div>`:''}
     <div class="veh-meta" style="margin-bottom:12px;">🕐 ${v.date}</div>
-    ${v.travaux&&v.travaux.length>0?`<div class="section-label">Travaux</div><div class="veh-tags" style="margin-bottom:12px;">${v.travaux.map(t=>`<span class="veh-tag" style="background:#2a2010;color:#f59e0b;">${t}</span>`).join('')}</div>`:''}
+    ${v.bonTravaux&&v.bonTravaux.length>0?`
+      <div style="background:#0a1628;border:2px solid #3b82f6;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📋 Bon demandé pour :</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${v.bonTravaux.map(t=>`<span style="background:#3b82f6;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;padding:4px 12px;border-radius:6px;">${t}</span>`).join('')}</div>
+        ${v.bonRemarque?`<div style="font-size:12px;color:#93c5fd;margin-top:8px;">💬 ${v.bonRemarque}</div>`:''}
+      </div>
+    `:''}
+    ${v.travaux&&v.travaux.length>0?`
+      <div style="border:1px solid #2a3045;border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🔍 Constaté à la prise en charge</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">${v.travaux.map(t=>`<span style="background:var(--surface2);color:#f59e0b;font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #2a2010;">${t}</span>`).join('')}</div>
+      </div>
+    `:''}
     ${v.remarques?`<div class="veh-meta" style="margin-bottom:12px;">💬 ${v.remarques}</div>`:''}
     ${v.dossier?`<div class="divider"></div><div class="section-label" style="color:#34d399;">📁 Dossier Atelier</div><div class="veh-meta" style="margin-bottom:8px;white-space:pre-wrap;">${v.dossier.note||'—'}</div>${v.dossier.photos&&v.dossier.photos.length>0?`<div class="photo-grid" style="margin-top:8px;">${v.dossier.photos.map(p=>`<img src="${p}" class="photo-thumb" onclick="openPhotoViewer('${p}')"/>`).join('')}</div>`:''}`:''}
     ${v.enlevement?`<div class="divider"></div><div class="section-label">Enlèvement</div>
@@ -1042,6 +1211,10 @@ function openModal(id){
       <div class="veh-meta">📍 Destination : <span style="color:#e8ecf4;">${v.enlevement.destination}</span></div>
       <div class="veh-meta">🕐 ${v.enlevement.date}</div>
       ${days!==null?`<div class="veh-meta">📅 Jours au centre : <span style="color:var(--accent);font-weight:700;">${days} jour${days>1?'s':''}</span></div>`:''}`:''}
+    ${isEnleve?`
+      <div class="divider"></div>
+      <button class="btn" style="background:#1e3a5f;color:#60a5fa;font-size:14px;margin-bottom:10px;" onclick="reopenVehicle(${id})">🔄 RÉOUVRIR LA FICHE</button>
+    `:''}
     ${!isEnleve?`<div class="divider"></div>
       <div class="section-label">Changer statut</div>
       <div class="status-btns">${statusBtns}</div>
@@ -1072,6 +1245,21 @@ function changeStatus(id,status){
   save();openModal(id);showToast('Statut : '+status);renderList();
 }
 function deleteVehicle(id){ if(!confirm('Supprimer ?'))return;vehicles=vehicles.filter(v=>v.id!==id);save();closeModal();renderList();showToast('Supprimé','#ef4444'); }
+
+function reopenVehicle(id){
+  if(!confirm('Réouvrir cette fiche ? Le véhicule repassera en liste active.')) return;
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  // Find last status before enlèvement from history
+  const lastStatus = v.statusHistory&&v.statusHistory.length>1
+    ? v.statusHistory[v.statusHistory.length-2].status
+    : 'Déposé garage';
+  v.status = lastStatus;
+  v.enlevement = null;
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status:lastStatus,comment:'Fiche réouverte',date:new Date().toLocaleString('fr-BE'),timestamp:Date.now()});
+  save(); closeModal(); renderArchives(); renderList();
+  showToast('🔄 Fiche réouverte — véhicule remis en liste active');
+}
 function closeModal(e){ if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open'); }
 
 // ── ENLÈVEMENT ──
@@ -1177,7 +1365,8 @@ function renderDashboard(){
   });
   const travauxCount={};
   monthlyVeh.forEach(v=>{
-    const travaux=v.travaux&&v.travaux.length>0?v.travaux:['Autres'];
+    // Use bonTravaux (factured) if available, else chauffeur travaux
+    const travaux=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
     travaux.forEach(t=>{ travauxCount[t]=(travauxCount[t]||0)+1; });
   });
   const travauxSorted=Object.entries(travauxCount).sort((a,b)=>b[1]-a[1]);
@@ -1226,7 +1415,7 @@ function renderBureau(){
     <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${terminesMois}</div><div class="bureau-stat-label">Terminés ce mois</div></div>
     <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${archived.length}</div><div class="bureau-stat-label">Enlevés ce mois</div></div>
     <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo(archived)}</div><div class="bureau-stat-label">Immobilisation moy.</div></div>
-    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#ef4444;">${filtered.filter(v=>daysSince(v.timestamp)>5).length}</div><div class="bureau-stat-label">Dépassent 5 jours</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#ef4444;">${filtered.filter(v=>workdaysSince(v.timestamp)>5).length}</div><div class="bureau-stat-label">Dépassent 5 j ouvrables</div></div>
   `;
 
   // Liste véhicules en centre
@@ -1240,13 +1429,13 @@ function renderBureau(){
           <span class="badge ${STATUS_CLASS[v.status]}">${v.status}</span>
         </div>
         <div class="bureau-veh-info">🏢 <span>${v.entreprise}</span> · 🏭 <span>${v.centre}</span></div>
-        <div class="bureau-veh-info">👤 <span>${v.chauffeur}</span> · 📅 <span style="color:${d>5?'#ef4444':d>3?'#fb923c':'#86efac'};">${d} jour${d>1?'s':''}</span></div>
+        <div class="bureau-veh-info">👤 <span>${v.chauffeur}</span> · 📅 <span style="color:${workdaysSince(v.timestamp)>5?'#ef4444':workdaysSince(v.timestamp)>3?'#fb923c':'#86efac'};">${d} jour${d>1?'s':''}</span></div>
         ${v.travaux&&v.travaux.length>0?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${v.travaux.map(t=>`<span class="veh-tag">${t}</span>`).join('')}</div>`:''}
       </div>`;
     }).join('');
 
   // Alertes 5+ jours
-  const alerts=filtered.filter(v=>daysSince(v.timestamp)>5);
+  const alerts=filtered.filter(v=>workdaysSince(v.timestamp)>5);
   document.getElementById('bureau-alerts').innerHTML=alerts.length===0
     ?'<div style="color:var(--muted);font-size:13px;padding:8px 0;">✅ Aucun dépassement</div>'
     :alerts.map(v=>{
@@ -1436,6 +1625,418 @@ async function refreshData(){
   }
 }
 setInterval(refreshData, 300000); // 5 minutes
+
+// ── RAPPORTS ──
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let selectedMonth = new Date().getMonth();
+let selectedYear = new Date().getFullYear();
+let chartInstances = {};
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function createLineChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: datasets.map(d=>({
+      ...d,
+      tension: 0.4,
+      fill: true,
+      backgroundColor: d.color+'22',
+      borderColor: d.color,
+      borderWidth: 2,
+      pointBackgroundColor: d.color,
+      pointRadius: 4
+    }))},
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createBarChart(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(d=>({ ...d, backgroundColor: d.color+'99', borderColor: d.color, borderWidth:1 })) },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#e8ecf4', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' } },
+        y: { ticks: { color: '#6b7694', font:{size:10} }, grid: { color: '#2a3045' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function getVehiclesForMonth(month, year){
+  return vehicles.filter(v=>{
+    const d = new Date(v.timestamp);
+    return d.getMonth()===month && d.getFullYear()===year;
+  });
+}
+
+function renderRapports(){
+  // Build year selector
+  const yearSel = document.getElementById('rapports-year-select');
+  if(yearSel){
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    // Collect all years from vehicles data
+    vehicles.forEach(v=>{ const y=new Date(v.timestamp).getFullYear(); if(!years.includes(y)) years.push(y); });
+    if(!years.includes(currentYear)) years.push(currentYear);
+    years.sort((a,b)=>b-a);
+    yearSel.innerHTML = years.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('');
+  }
+
+  // Build month tabs
+  const tabsEl = document.getElementById('month-tabs');
+  tabsEl.innerHTML = MONTHS.map((m,i)=>`
+    <button onclick="selectMonth(${i})" id="mtab-${i}" style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:${i===selectedMonth?'var(--accent)':'transparent'};color:${i===selectedMonth?'#000':'var(--muted)'};font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer;">${m}</button>
+  `).join('');
+
+  renderMonthData(selectedMonth, selectedYear);
+}
+
+function selectMonth(m){
+  selectedMonth = m;
+  renderRapports();
+}
+
+function renderMonthData(month, year){
+  year = year || selectedYear;
+  const monthVeh = getVehiclesForMonth(month, year);
+  const enleves = monthVeh.filter(v=>v.status==='Enlevé'||v.enlevement);
+  const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+
+  // KPIs
+  const withDays = enleves.filter(v=>v.enlevement);
+  const avgImmo = withDays.length>0
+    ? (withDays.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/withDays.length).toFixed(1)
+    : '—';
+
+  document.getElementById('rapports-kpi').innerHTML = `
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#f59e0b;">${monthVeh.length}</div><div class="bureau-stat-label">Reçus</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#86efac;">${termines.length}</div><div class="bureau-stat-label">Terminés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#c084fc;">${enleves.length}</div><div class="bureau-stat-label">Enlevés</div></div>
+    <div class="bureau-stat"><div class="bureau-stat-num" style="color:#fb923c;">${avgImmo}</div><div class="bureau-stat-label">Moy. jours</div></div>
+  `;
+
+  // Chart 1: reçus vs terminés (last 6 months)
+  const last6 = [];
+  const last6Labels = [];
+  const last6Termines = [];
+  for(let i=5;i>=0;i--){
+    let m = month-i; let y = year;
+    if(m<0){m+=12;y--;}
+    last6Labels.push(MONTHS[m]);
+    last6.push(getVehiclesForMonth(m,y).length);
+    last6Termines.push(getVehiclesForMonth(m,y).filter(v=>v.status==='Terminé'||v.status==='Enlevé').length);
+  }
+  createLineChart('chart-recus-termines', last6Labels, [
+    {label:'Reçus', data:last6, color:'#f59e0b'},
+    {label:'Terminés', data:last6Termines, color:'#22c55e'}
+  ]);
+
+  // Chart 2: par centre
+  const centreData = CENTRES.map(c=>monthVeh.filter(v=>v.centre===c).length);
+  createBarChart('chart-par-centre', CENTRES, [
+    {label:'Véhicules', data:centreData, color:'#3b82f6'}
+  ]);
+
+  // Chart 3: top clients (grouped)
+  const clientMap = {};
+  monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+  const clientsSorted = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  createBarChart('chart-clients', clientsSorted.map(x=>x[0]), [
+    {label:'Véhicules', data:clientsSorted.map(x=>x[1]), color:'#a855f7'}
+  ]);
+
+  // Chart 4: immobilisation par centre (last 6 months)
+  const immoData = CENTRES.map(c=>{
+    const cVeh = last6Labels.map((_,i)=>{
+      let m=month-5+i; let y=year; if(m<0){m+=12;y--;}
+      return getVehiclesForMonth(m,y).filter(v=>v.centre===c&&v.enlevement);
+    });
+    return cVeh.map(vList=>{
+      if(!vList.length) return 0;
+      return (vList.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/vList.length).toFixed(1);
+    });
+  });
+  createLineChart('chart-immo', last6Labels, [
+    {label:'Zaventem', data:immoData[0], color:'#f59e0b'},
+    {label:'Rhode',    data:immoData[1], color:'#3b82f6'},
+    {label:'Hannut',   data:immoData[2], color:'#22c55e'}
+  ]);
+
+  // Table centres
+  document.getElementById('rapports-centres').innerHTML = CENTRES.map(c=>{
+    const n = monthVeh.filter(v=>v.centre===c).length;
+    const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+    const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+'j':'—';
+    return `<div class="bureau-stat-row"><span>${c}</span><div style="text-align:right;"><div class="bureau-stat-val">${n}</div><div style="font-size:11px;color:var(--muted);">moy: ${avg}</div></div></div>`;
+  }).join('');
+
+  // Table travaux
+  const travauxMap = {};
+  monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+  const travauxSorted = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('rapports-travaux').innerHTML = travauxSorted.length===0
+    ? '<div style="color:var(--muted);padding:8px;font-size:13px;">Aucune donnée</div>'
+    : travauxSorted.map(([t,n])=>`<div class="bureau-stat-row"><span style="font-size:13px;">${t}</span><span class="bureau-stat-val">${n}</span></div>`).join('');
+}
+
+// ── EXPORTS ──
+function exportMonthPDF(){
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const monthName = MONTHS_FULL[selectedMonth];
+    const year = selectedYear;
+    const monthVeh = getVehiclesForMonth(selectedMonth, year);
+    const enleves = monthVeh.filter(v=>v.enlevement);
+    const termines = monthVeh.filter(v=>v.status==='Terminé'||v.status==='Enlevé');
+    const avgImmo = enleves.length>0
+      ? (enleves.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enleves.length).toFixed(1)
+      : '—';
+
+    // Header
+    doc.setFillColor(245,158,11);
+    doc.rect(0,0,210,25,'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text('Midas FleetTrack', 14, 10);
+    doc.setFontSize(12); doc.setFont('helvetica','normal');
+    doc.text(`Rapport mensuel — ${monthName} ${year}`, 14, 18);
+    doc.setTextColor(0,0,0);
+
+    // KPIs
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Résumé du mois', 14, 35);
+    doc.autoTable({
+      startY: 40,
+      head: [['Véhicules reçus','Terminés','Enlevés','Immobilisation moy.']],
+      body: [[monthVeh.length, termines.length, enleves.length, avgImmo+' j']],
+      headStyles: { fillColor: [245,158,11], textColor: 0 },
+      styles: { fontSize: 11, halign: 'center' }
+    });
+
+    // Par centre
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par centre', 14, doc.lastAutoTable.finalY + 12);
+    const centreRows = CENTRES.map(c=>{
+      const n = monthVeh.filter(v=>v.centre===c).length;
+      const enl = monthVeh.filter(v=>v.centre===c&&v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1)+' j':'—';
+      return [c, n, avg];
+    });
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Centre','Véhicules','Immobilisation moy.']],
+      body: centreRows,
+      headStyles: { fillColor: [59,130,246], textColor: 255 },
+    });
+
+    // Par client
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('Par client', 14, doc.lastAutoTable.finalY + 12);
+    const clientMap = {};
+    monthVeh.forEach(v=>{ const g=clientGroup(v.entreprise); clientMap[g]=(clientMap[g]||0)+1; });
+    const clientRows = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[c,n]);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Client','Véhicules']],
+      body: clientRows,
+      headStyles: { fillColor: [168,85,247], textColor: 255 },
+    });
+
+    // Travaux
+    const travauxMap = {};
+    monthVeh.forEach(v=>{
+    const tw=v.bonTravaux&&v.bonTravaux.length>0?v.bonTravaux:(v.travaux&&v.travaux.length>0?v.travaux:['Autres']);
+    tw.forEach(t=>{ travauxMap[t]=(travauxMap[t]||0)+1; });
+  });
+    const travauxRows = Object.entries(travauxMap).sort((a,b)=>b[1]-a[1]).map(([t,n])=>[t,n]);
+    if(travauxRows.length > 0){
+      doc.setFontSize(11); doc.setFont('helvetica','bold');
+      doc.text('Types de travaux', 14, doc.lastAutoTable.finalY + 12);
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Travail','Occurrences']],
+        body: travauxRows,
+        headStyles: { fillColor: [34,197,94], textColor: 0 },
+      });
+    }
+
+    // Footer
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text(`Généré le ${new Date().toLocaleString('fr-BE')} — Midas FleetTrack`, 14, 285);
+
+    doc.save(`Midas_Rapport_${monthName}_${year}.pdf`);
+    showToast('📄 PDF téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur PDF','#ef4444'); }
+}
+
+function exportYearExcel(){
+  try {
+    const wb = window.XLSX.utils.book_new();
+    const year = selectedYear;
+
+    // Sheet 1: All vehicles of the year
+    const yearVeh = vehicles.filter(v=>new Date(v.timestamp).getFullYear()===year);
+    const rows = yearVeh.map(v=>({
+      'Mois': MONTHS_FULL[new Date(v.timestamp).getMonth()],
+      'Plaque': v.plaque,
+      'Client': v.entreprise,
+      'Centre': v.centre,
+      'Chauffeur': v.chauffeur,
+      'Statut': v.status,
+      'Date dépôt': v.date,
+      'Date enlèvement': v.enlevement?v.enlevement.date:'',
+      'Enlevé par': v.enlevement?v.enlevement.qui:'',
+      'Destination': v.enlevement?v.enlevement.destination:'',
+      'Jours au centre': v.enlevement?daysBetween(v.timestamp,v.enlevement.timestamp):'',
+      'Constaté prise en charge': (v.travaux||[]).join(', ')||'—',
+      'Travaux du bon': (v.bonTravaux||[]).join(', ')||'—',
+      'Kilométrage': v.km||'',
+      'Remarques': v.remarques||''
+    }));
+    const ws1 = window.XLSX.utils.json_to_sheet(rows);
+    window.XLSX.utils.book_append_sheet(wb, ws1, 'Véhicules '+year);
+
+    // Sheet 2: Monthly summary
+    const summaryRows = MONTHS_FULL.map((m,i)=>{
+      const mv = getVehiclesForMonth(i, year);
+      const enl = mv.filter(v=>v.enlevement);
+      const avg = enl.length>0?(enl.reduce((s,v)=>s+daysBetween(v.timestamp,v.enlevement.timestamp),0)/enl.length).toFixed(1):'—';
+      return {
+        'Mois': m,
+        'Reçus': mv.length,
+        'Terminés': mv.filter(v=>v.status==='Terminé'||v.status==='Enlevé').length,
+        'Enlevés': enl.length,
+        'Immobilisation moy. (j)': avg,
+        'Zaventem': mv.filter(v=>v.centre==='Zaventem').length,
+        'Rhode': mv.filter(v=>v.centre==='Rhode').length,
+        'Hannut': mv.filter(v=>v.centre==='Hannut').length,
+      };
+    });
+    const ws2 = window.XLSX.utils.json_to_sheet(summaryRows);
+    window.XLSX.utils.book_append_sheet(wb, ws2, 'Résumé mensuel');
+
+    window.XLSX.writeFile(wb, `Midas_Rapport_${year}.xlsx`);
+    showToast('📊 Excel téléchargé !');
+  } catch(e){ console.error(e); showToast('⚠️ Erreur Excel','#ef4444'); }
+}
+
+// ── BON TRAVAUX ──
+let pendingBonId = null;
+
+function buildBonTravauxGrid(){
+  const grid = document.getElementById('bon-travaux-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  BON_TRAVAUX.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'check-item';
+    d.dataset.travail = t;
+    d.innerHTML = `<div class="check-dot"></div><span>${t}</span>`;
+    d.onclick = () => {
+      d.classList.toggle('checked');
+      d.querySelector('.check-dot').textContent = d.classList.contains('checked') ? '✓' : '';
+    };
+    grid.appendChild(d);
+  });
+}
+
+function openBonModal(id){
+  pendingBonId = id;
+  const v = vehicles.find(x=>x.id===id);
+  // Pre-check existing bon travaux if any
+  buildBonTravauxGrid();
+  if(v.bonTravaux && v.bonTravaux.length>0){
+    v.bonTravaux.forEach(t=>{
+      const el = document.querySelector(`#bon-travaux-grid [data-travail="${t}"]`);
+      if(el){ el.classList.add('checked'); el.querySelector('.check-dot').textContent='✓'; }
+    });
+  }
+  document.getElementById('bon-remarque').value = v.bonRemarque||'';
+  document.getElementById('bon-modal').classList.add('open');
+}
+
+function closeBonModal(){
+  document.getElementById('bon-modal').classList.remove('open');
+  pendingBonId = null;
+}
+
+function confirmBon(){
+  const v = vehicles.find(x=>x.id===pendingBonId); if(!v) return;
+  const bonTravaux = [...document.querySelectorAll('#bon-travaux-grid .check-item.checked')].map(el=>el.dataset.travail);
+  const bonRemarque = document.getElementById('bon-remarque').value.trim();
+  if(bonTravaux.length===0){ showToast('⚠️ Coche au moins un travail','#ef4444'); return; }
+  v.bonTravaux = bonTravaux;
+  v.bonRemarque = bonRemarque;
+  v.status = 'Bon demandé / En réparation';
+  if(!v.statusHistory) v.statusHistory=[];
+  v.statusHistory.push({status:'Bon demandé / En réparation', comment: bonTravaux.join(', ')+(bonRemarque?' — '+bonRemarque:''), date:new Date().toLocaleString('fr-BE'), timestamp:Date.now()});
+  save(); closeBonModal(); closeModal(); renderList();
+  showToast('📋 Bon enregistré');
+}
+
+// ── PARKING ──
+let pendingParkingId = null;
+let selectedParking = null;
+
+function toggleParking(el, val){
+  // Single select
+  document.querySelectorAll('#parking-grid .check-item').forEach(i=>{
+    i.classList.remove('checked');
+    i.querySelector('.check-dot').textContent='';
+  });
+  el.classList.add('checked');
+  el.querySelector('.check-dot').textContent='✓';
+  selectedParking = val;
+}
+
+function openParkingModal(id){
+  pendingParkingId = id;
+  selectedParking = null;
+  document.querySelectorAll('#parking-grid .check-item').forEach(i=>{
+    i.classList.remove('checked');
+    i.querySelector('.check-dot').textContent='';
+  });
+  document.getElementById('parking-modal').classList.add('open');
+}
+
+function confirmParking(skip){
+  const v = vehicles.find(x=>x.id===pendingParkingId); if(!v) return;
+  v.status = 'Terminé';
+  if(!skip && selectedParking) v.parking = selectedParking;
+  else if(skip) v.parking = null;
+  if(!v.statusHistory) v.statusHistory=[];
+  const comment = selectedParking && !skip ? `Emplacement : ${selectedParking}` : '';
+  v.statusHistory.push({status:'Terminé', comment, date:new Date().toLocaleString('fr-BE'), timestamp:Date.now()});
+  save();
+  document.getElementById('parking-modal').classList.remove('open');
+  pendingParkingId = null;
+  closeModal(); renderList();
+  showToast('✅ Véhicule terminé'+(selectedParking&&!skip?' — '+selectedParking:''));
+}
 
 // ── TOAST ──
 function showToast(msg,color='#22c55e'){
